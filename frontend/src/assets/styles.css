@@ -1,0 +1,143 @@
+/**
+ * 文件名: styles.css
+ * 功能描述: 全局自定义样式
+ * 作者: ZT
+ * 日期: 2026/6/16
+ */
+
+/* 全局变量 */
+:root {
+  --primary-green: #198754;
+  --light-green: #f0fff0;
+  --dark-green: #0d6efd;
+}
+
+/* 全局样式 */
+body {
+  font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+/* 链接样式 */
+a {
+  color: var(--primary-green);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--dark-green);
+}
+
+/* 按钮样式 */
+.btn-success {
+  background-color: var(--primary-green);
+  border-color: var(--primary-green);
+}
+
+.btn-success:hover {
+  background-color: var(--dark-green);
+  border-color: var(--dark-green);
+}
+
+.btn-outline-success {
+  color: var(--primary-green);
+  border-color: var(--primary-green);
+}
+
+.btn-outline-success:hover {
+  background-color: var(--primary-green);
+  border-color: var(--primary-green);
+}
+
+/* 卡片样式 */
+.card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card-header {
+  border-bottom: none;
+}
+
+/* 徽章样式 */
+.badge {
+  font-weight: 500;
+  padding: 6px 12px;
+}
+
+/* 表单样式 */
+.form-control:focus {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+/* 手风琴样式 */
+.accordion-button:not(.collapsed) {
+  background-color: var(--light-green);
+  color: var(--primary-green);
+}
+
+.accordion-button:focus {
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+/* 加载动画 */
+.spinner-border {
+  color: var(--primary-green);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .display-5 {
+    font-size: 1.8rem;
+  }
+
+  .display-4 {
+    font-size: 2.5rem;
+  }
+}
+
+/* 工具类 */
+.text-success {
+  color: var(--primary-green) !important;
+}
+
+.bg-success {
+  background-color: var(--primary-green) !important;
+}
+
+/* 阴影效果 */
+.shadow-sm {
+  box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
+}
+
+.shadow {
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+}
+
+/* 过渡效果 */
+.card,
+.btn {
+  transition: all 0.2s ease;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-green);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dark-green);
+}

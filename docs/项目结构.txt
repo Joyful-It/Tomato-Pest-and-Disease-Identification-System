@@ -1,0 +1,180 @@
+【农业智能咨询系统 - 流程图】
+
+1. 用户交互
+   ├─ 上传作物图片
+   └─ 语音/文字咨询
+          ↓
+2. 输入理解层
+   └─ 图片 + 文本解析
+          ↓
+3. 病虫害识别模型层
+   └─ EfficientNet / ResNet / CLIP（三模型对比）
+          ↓
+4. Supervisor Agent（任务拆解与调度）
+          ↓
+   ┌──────┼──────┬──────┬──────┬──────┬──────┐
+   ↓      ↓      ↓      ↓      ↓      ↓      ↓
+5. 并行专业Agent层：
+   - 病害知识Agent（RAG）
+   - 天气Agent（Weather API）
+   - 土壤分析Agent（区域土壤库）
+   - 灌溉Agent（灌溉建议）
+   - 安全用药Agent（风险审核）
+   - 种植日历/农事提醒Agent
+   - Memory Agent（长期记忆与用户档案）
+          ↓
+   （所有Agent结果汇总）
+          ↓
+6. 综合决策生成模块
+   └─ LLM汇总输出
+          ↓
+7. 返回农户最终建议
+
+
+========================================
+番茄病虫害识别系统 - 项目结构
+========================================
+
+项目根目录：project/
+├── main.py                     # FastAPI 应用主入口
+├── config.py                   # 配置文件（数据库、API Key 等）
+├── model.py                    # LLM 模型配置（智谱 AI GLM-4）
+├── requirements.txt            # Python 依赖包列表
+├── README.md                   # 项目说明文档
+│
+├── agents/                     # 智能体层
+│   ├── __init__.py            # 包初始化
+│   ├── base_agent.py          # Agent 基类，定义通用接口
+│   ├── supervisor.py          # Supervisor Agent - 任务拆解与调度
+│   ├── disease_agent.py       # 病害知识 Agent（预留 RAG 接口）
+│   ├── weather_agent.py       # 天气 Agent（结合彩云 API）
+│   ├── soil_agent.py          # 土壤分析 Agent（基于 GPS 定位）
+│   ├── irrigation_agent.py    # 灌溉 Agent
+│   ├── safety_agent.py        # 安全用药 Agent
+│   ├── calendar_agent.py      # 种植日历 Agent
+│   └── memory_agent.py        # 记忆 Agent（长期记忆与用户档案）
+│
+├── models/                     # 模型层
+│   ├── __init__.py            # 包初始化
+│   ├── image_processor.py     # 图像处理（预处理、特征提取）
+│   ├── text_processor.py      # 文本处理（关键词提取、症状识别）
+│   └── disease_detector.py    # 病虫害识别（预留模型接口）
+│
+├── services/                   # 服务层
+│   ├── __init__.py            # 包初始化
+│   ├── llm_service.py         # LLM 服务封装
+│   ├── weather_service.py     # 天气服务（彩云 API）
+│   ├── soil_service.py        # 土壤服务（区域土壤库）
+│   ├── location_service.py    # 定位服务（浏览器/IP/手动）
+│   └── database_service.py   # 数据库服务封装
+│
+├── api/                        # API 路由层
+│   ├── __init__.py            # 包初始化
+│   ├── routes.py              # FastAPI 路由定义
+│   └── schemas.py             # Pydantic 数据模型
+│
+├── database/                   # 数据库层
+│   ├── __init__.py            # 包初始化
+│   ├── models.py              # SQLAlchemy 数据模型
+│   └── init_db.py             # 数据库初始化脚本
+│
+├── frontend/                   # Vue.js 前端
+│   ├── package.json           # Node.js 依赖配置
+│   ├── vite.config.js         # Vite 构建配置
+│   ├── index.html             # HTML 入口
+│   └── src/
+│       ├── App.vue            # 根组件
+│       ├── main.js            # Vue 应用入口
+│       ├── router/
+│       │   └── index.js       # Vue Router 路由配置
+│       ├── views/
+│       │   ├── HomeView.vue   # 首页（图片上传、文字输入）
+│       │   ├── ResultView.vue # 诊断结果展示
+│       │   ├── HistoryView.vue# 历史记录
+│       │   └── ProfileView.vue# 用户档案
+│       └── assets/
+│           └── styles.css     # 自定义样式
+│
+├── uploads/                    # 上传文件目录
+│
+└── docs/                       # 文档目录
+    ├── 项目结构.txt            # 本文件
+    ├── 需求文档.md             # 详细需求说明
+    └── API文档.md              # API 接口文档
+
+
+模块功能说明
+============
+
+1. agents/ - 智能体层
+   - supervisor.py: 接收用户输入，分析需要执行的任务，调度其他 Agent
+   - disease_agent.py: 分析病虫害信息，预留 RAG 知识库接口
+   - weather_agent.py: 查询天气，分析天气对病害的影响
+   - soil_agent.py: 分析土壤状况，提供土壤改良建议
+   - irrigation_agent.py: 分析灌溉需求，生成灌溉计划
+   - safety_agent.py: 推荐农药，分析用药安全性
+   - calendar_agent.py: 生成农事日历，提供农事提醒
+   - memory_agent.py: 管理用户记忆，生成个性化建议
+
+2. models/ - 模型层
+   - image_processor.py: 图像预处理、特征提取
+   - text_processor.py: 文本解析、关键词提取
+   - disease_detector.py: 病虫害识别（预留模型接口）
+
+3. services/ - 服务层
+   - llm_service.py: 封装与 LLM 的交互
+   - weather_service.py: 封装天气 API 调用
+   - soil_service.py: 封装土壤数据查询
+   - location_service.py: 封装多种定位方式
+   - database_service.py: 封装数据库操作
+
+4. api/ - API 路由层
+   - routes.py: 定义所有 API 端点
+   - schemas.py: 定义请求/响应数据结构
+
+5. database/ - 数据库层
+   - models.py: 定义数据表结构
+   - init_db.py: 初始化数据库
+
+6. frontend/ - 前端
+   - Vue.js 3 + Bootstrap 5
+   - 图片上传、文字输入、结果展示、历史记录、用户档案
+
+
+数据流程
+========
+
+1. 用户上传图片或输入文字
+2. 图像/文本处理模块解析输入
+3. 病虫害识别模型进行识别
+4. Supervisor Agent 分析并调度任务
+5. 各专业 Agent 并行分析
+6. 记忆 Agent 检索历史记录
+7. LLM 综合所有结果生成最终建议
+8. 返回农户防治建议
+
+
+扩展接口
+========
+
+1. 病虫害识别模型（待接入）
+   - 文件：models/disease_detector.py
+   - 方法：detect(image_path, features)
+
+2. RAG 知识库（待接入）
+   - 文件：agents/disease_agent.py
+   - 方法：_query_knowledge_base(disease_result)
+
+3. 彩云天气 API（需配置）
+   - 文件：config.py
+   - 配置：CAIYUN_API_KEY
+
+
+启动方式
+========
+
+1. 安装后端依赖：pip install -r requirements.txt
+2. 启动后端：python main.py
+3. 安装前端依赖：cd frontend && npm install
+4. 启动前端：npm run dev
+5. 访问：http://localhost:3000

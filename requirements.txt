@@ -1,0 +1,36 @@
+# 番茄病虫害识别与防治建议系统 - 依赖包列表
+# 作者: ZT
+# 日期: 2026/6/16
+
+# Web 框架
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# 数据库
+sqlalchemy==2.0.25
+aiosqlite==0.19.0
+
+# LLM 和 Agent
+langchain==0.1.4
+langchain-openai==0.0.3
+langchain-community==0.0.16
+
+# 图像处理
+Pillow==10.2.0
+
+# HTTP 请求
+httpx==0.26.0
+aiohttp==3.9.3
+
+# 数据验证
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# 工具库
+python-dotenv==1.0.0
+loguru==0.7.2
+
+# 开发依赖
+pytest==7.4.4
+pytest-asyncio==0.23.3
