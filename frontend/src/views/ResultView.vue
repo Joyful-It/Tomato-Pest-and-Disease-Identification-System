@@ -1,6 +1,6 @@
 <!--
 文件名: ResultView.vue
-功能描述: 诊断结果展示组件
+功能描述: 诊断结果展示组件，包含天气信息和追问功能
 作者: ZT
 日期: 2026/6/16
 -->
@@ -70,6 +70,64 @@
         </div>
       </div>
 
+      <!-- 天气信息卡片 -->
+      <div class="card shadow-sm mb-4" v-if="weatherData && weatherData.success">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-cloud-sun"></i> 当地天气信息
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- 今日天气 -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center">
+                <i :class="getWeatherIcon(weatherData.today?.skycon)" class="fs-1 me-3"></i>
+                <div>
+                  <h3 class="mb-0">{{ weatherData.today?.description }}</h3>
+                  <p class="text-muted mb-0">{{ weatherData.today?.date }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="row text-center">
+                <div class="col-4">
+                  <div class="fs-4 fw-bold text-danger">{{ weatherData.today?.temperature?.max?.toFixed(0) }}°C</div>
+                  <small class="text-muted">最高</small>
+                </div>
+                <div class="col-4">
+                  <div class="fs-4 fw-bold text-primary">{{ weatherData.today?.temperature?.min?.toFixed(0) }}°C</div>
+                  <small class="text-muted">最低</small>
+                </div>
+                <div class="col-4">
+                  <div class="fs-4 fw-bold text-info">{{ weatherData.today?.humidity?.avg?.toFixed(0) }}%</div>
+                  <small class="text-muted">湿度</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 未来预报 -->
+          <div class="row" v-if="weatherData.forecast?.length">
+            <div class="col-12">
+              <h6 class="text-muted mb-2">未来预报</h6>
+            </div>
+            <div v-for="(day, index) in weatherData.forecast" :key="index" class="col text-center">
+              <div class="p-2 border rounded">
+                <div class="fw-bold">{{ index === 0 ? '今天' : index === 1 ? '明天' : '后天' }}</div>
+                <i :class="getWeatherIcon(day.skycon)" class="fs-4 my-1"></i>
+                <div class="small">{{ day.description }}</div>
+                <div class="small">
+                  <span class="text-danger">{{ day.temperature?.max?.toFixed(0) }}°</span>
+                  <span class="text-muted">/</span>
+                  <span class="text-primary">{{ day.temperature?.min?.toFixed(0) }}°</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 综合建议 -->
       <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
@@ -83,7 +141,7 @@
       </div>
 
       <!-- 详细分析（可折叠） -->
-      <div class="accordion" id="analysisAccordion">
+      <div class="accordion mb-4" id="analysisAccordion">
         <!-- 天气分析 -->
         <div class="accordion-item" v-if="result.weather_analysis">
           <h2 class="accordion-header">
@@ -183,6 +241,74 @@
         </div>
       </div>
 
+      <!-- 追问功能 -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0">
+            <i class="bi bi-chat-dots"></i> 继续咨询
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">如有其他疑问，可以继续向 AI 助手提问：</p>
+
+          <!-- 对话历史 -->
+          <div class="chat-history mb-3" v-if="chatHistory.length">
+            <div v-for="(chat, index) in chatHistory" :key="index" class="chat-message mb-3">
+              <!-- 用户消息 -->
+              <div class="d-flex justify-content-end mb-2">
+                <div class="bg-success text-white p-2 rounded-3" style="max-width: 80%;">
+                  {{ chat.question }}
+                </div>
+              </div>
+              <!-- AI 回复 -->
+              <div class="d-flex justify-content-start">
+                <div class="bg-light p-2 rounded-3" style="max-width: 80%;">
+                  <div v-html="formatAdvice(chat.answer)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 输入框 -->
+          <div class="input-group">
+            <input
+              v-model="chatMessage"
+              type="text"
+              class="form-control"
+              placeholder="输入您的问题，例如：这个病用什么药效果最好？"
+              @keyup.enter="sendChat"
+              :disabled="chatLoading"
+            >
+            <button
+              class="btn btn-warning"
+              type="button"
+              @click="sendChat"
+              :disabled="chatLoading || !chatMessage.trim()"
+            >
+              <span v-if="chatLoading" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-send"></i>
+              发送
+            </button>
+          </div>
+
+          <!-- 快捷问题 -->
+          <div class="mt-3">
+            <small class="text-muted">快捷提问：</small>
+            <div class="mt-1">
+              <button
+                v-for="quickQuestion in quickQuestions"
+                :key="quickQuestion"
+                class="btn btn-outline-secondary btn-sm me-2 mb-2"
+                @click="chatMessage = quickQuestion; sendChat()"
+                :disabled="chatLoading"
+              >
+                {{ quickQuestion }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 操作按钮 -->
       <div class="text-center mt-4">
         <router-link to="/" class="btn btn-success btn-lg me-3">
@@ -199,7 +325,8 @@
 <script>
 /**
  * 诊断结果展示组件
- * 展示病虫害识别结果和各 Agent 的分析建议
+ * 展示病虫害识别结果、天气信息和各 Agent 的分析建议
+ * 支持追问功能
  */
 import axios from 'axios'
 
@@ -208,8 +335,18 @@ export default {
   data() {
     return {
       result: null,
+      weatherData: null,
       loading: true,
-      error: null
+      error: null,
+      chatMessage: '',
+      chatLoading: false,
+      chatHistory: [],
+      quickQuestions: [
+        '这个病用什么药效果最好？',
+        '施药时需要注意什么？',
+        '如何预防这种病害？',
+        '近期天气适合施药吗？'
+      ]
     }
   },
   async created() {
@@ -223,32 +360,31 @@ export default {
       const diagnosisId = this.$route.params.id
 
       try {
-        // 从历史记录中获取诊断结果
-        const response = await axios.get(`/api/history`)
+        // 获取诊断详情
+        const response = await axios.get(`/api/diagnosis/${diagnosisId}`)
 
         if (response.data.success) {
-          const record = response.data.records.find(r => r.id === parseInt(diagnosisId))
+          const data = response.data
+          this.result = {
+            diagnosis_id: data.diagnosis_id,
+            disease_result: data.disease_result,
+            weather_analysis: data.weather_analysis,
+            soil_analysis: data.soil_analysis,
+            irrigation_advice: data.irrigation_advice,
+            safety_advice: data.safety_advice,
+            calendar_advice: data.calendar_advice,
+            final_advice: data.final_advice
+          }
 
-          if (record) {
-            // 这里简化处理，实际应该有专门的接口获取单条记录的详细信息
-            this.result = {
-              diagnosis_id: record.id,
-              disease_result: {
-                disease_name: record.disease_name,
-                confidence: 0.85,
-                symptoms: [],
-                is_healthy: record.disease_name === '番茄-健康'
-              },
-              final_advice: '正在加载详细建议...'
-            }
-
-            // 加载详细信息
-            await this.loadDetail(diagnosisId)
-          } else {
-            this.error = '未找到诊断记录'
+          // 处理天气数据
+          if (data.weather_data && data.weather_data.success) {
+            this.weatherData = data.weather_data
+          } else if (data.latitude && data.longitude) {
+            // 如果没有天气数据，单独请求
+            await this.loadWeather(data.latitude, data.longitude)
           }
         } else {
-          this.error = '加载失败'
+          this.error = '未找到诊断记录'
         }
       } catch (error) {
         console.error('加载诊断结果失败:', error)
@@ -259,51 +395,83 @@ export default {
     },
 
     /**
-     * 加载详细信息
+     * 加载天气数据
      */
-    async loadDetail(diagnosisId) {
-      // 这里应该调用专门的接口获取详细信息
-      // 目前使用模拟数据
-      this.result = {
-        ...this.result,
-        weather_analysis: {
-          success: true,
-          analysis: '当前天气多云，温度适中，有利于番茄生长，但需注意湿度变化。',
-          advice: '建议在晴天进行施药，避免雨天操作。'
-        },
-        soil_analysis: {
-          success: true,
-          analysis: '土壤 pH 值适中，有机质含量良好。',
-          advice: '建议增施有机肥，改善土壤结构。'
-        },
-        irrigation_advice: {
-          success: true,
-          analysis: '当前土壤湿度适中，无需立即灌溉。',
-          advice: '建议采用滴灌方式，保持土壤湿润但不积水。'
-        },
-        safety_advice: {
-          success: true,
-          analysis: '推荐使用低毒农药，注意安全间隔期。',
-          advice: '建议使用百菌清或多菌灵进行防治，施药时佩戴防护装备。'
-        },
-        calendar_advice: {
-          success: true,
-          analysis: '未来一周适合进行病害防治和田间管理。',
-          advice: null
-        },
-        final_advice: `根据诊断结果，您的番茄可能存在病害问题。建议采取以下措施：
+    async loadWeather(latitude, longitude) {
+      try {
+        const response = await axios.get(`/api/weather/${latitude}/${longitude}`)
+        if (response.data.success) {
+          this.weatherData = response.data
+        }
+      } catch (error) {
+        console.error('加载天气数据失败:', error)
+      }
+    },
 
-1. **病害防治**：及时使用推荐的农药进行防治，注意按照说明书使用。
+    /**
+     * 获取天气图标
+     */
+    getWeatherIcon(skycon) {
+      const icons = {
+        'CLEAR_DAY': 'bi bi-sun text-warning',
+        'CLEAR_NIGHT': 'bi bi-moon text-primary',
+        'PARTLY_CLOUDY_DAY': 'bi bi-cloud-sun text-info',
+        'PARTLY_CLOUDY_NIGHT': 'bi bi-cloud-moon text-primary',
+        'CLOUDY': 'bi bi-cloud text-secondary',
+        'LIGHT_HAZE': 'bi bi-cloud-haze text-secondary',
+        'MODERATE_HAZE': 'bi bi-cloud-haze text-secondary',
+        'HEAVY_HAZE': 'bi bi-cloud-haze text-dark',
+        'LIGHT_RAIN': 'bi bi-cloud-drizzle text-info',
+        'MODERATE_RAIN': 'bi bi-cloud-rain text-primary',
+        'HEAVY_RAIN': 'bi bi-cloud-rain-heavy text-primary',
+        'STORM_RAIN': 'bi bi-cloud-lightning-rain text-dark',
+        'FOG': 'bi bi-cloud-fog text-secondary',
+        'LIGHT_SNOW': 'bi bi-cloud-snow text-info',
+        'MODERATE_SNOW': 'bi bi-cloud-snow text-primary',
+        'HEAVY_SNOW': 'bi bi-cloud-snow text-dark',
+        'STORM_SNOW': 'bi bi-cloud-snow text-dark',
+        'WIND': 'bi bi-wind text-info'
+      }
+      return icons[skycon] || 'bi bi-cloud text-secondary'
+    },
 
-2. **田间管理**：加强通风透光，及时清除病叶病果，减少病害传播。
+    /**
+     * 发送追问
+     */
+    async sendChat() {
+      if (!this.chatMessage.trim() || this.chatLoading) return
 
-3. **水肥管理**：合理灌溉，避免积水，增施有机肥提高植株抗病能力。
+      const question = this.chatMessage.trim()
+      this.chatMessage = ''
+      this.chatLoading = true
 
-4. **预防措施**：定期巡查，发现病害及时处理，防止扩散。
+      try {
+        const response = await axios.post('/api/chat', {
+          diagnosis_id: this.result.diagnosis_id,
+          message: question
+        })
 
-5. **安全用药**：施药时注意防护，遵守安全间隔期，确保农产品安全。
+        if (response.data.success) {
+          this.chatHistory.push({
+            question: question,
+            answer: response.data.message
+          })
 
-请根据实际情况调整管理措施，如有疑问可随时咨询。`
+          // 滚动到底部
+          this.$nextTick(() => {
+            const chatContainer = this.$el.querySelector('.chat-history')
+            if (chatContainer) {
+              chatContainer.scrollTop = chatContainer.scrollHeight
+            }
+          })
+        } else {
+          alert('提问失败：' + (response.data.error || '未知错误'))
+        }
+      } catch (error) {
+        console.error('追问失败:', error)
+        alert('提问失败，请稍后重试')
+      } finally {
+        this.chatLoading = false
       }
     },
 
@@ -336,5 +504,21 @@ export default {
 
 .advice-content strong {
   color: #198754;
+}
+
+.chat-history {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.chat-message {
+  margin-bottom: 15px;
+}
+
+.chat-message .rounded-3 {
+  border-radius: 12px !important;
 }
 </style>

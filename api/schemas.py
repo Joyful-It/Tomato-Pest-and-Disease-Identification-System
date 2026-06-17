@@ -52,6 +52,22 @@ class LocationRequest(BaseModel):
         }
 
 
+class ChatRequest(BaseModel):
+    """
+    追问请求模型
+    """
+    diagnosis_id: int = Field(..., description="诊断记录 ID")
+    message: str = Field(..., description="用户追问内容")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "diagnosis_id": 1,
+                "message": "这个病用什么药效果最好？"
+            }
+        }
+
+
 # ==================== 响应模型 ====================
 
 class DiseaseResult(BaseModel):
@@ -82,6 +98,7 @@ class DiagnosisResponse(BaseModel):
     success: bool = Field(..., description="是否成功")
     diagnosis_id: Optional[int] = Field(None, description="诊断记录ID")
     disease_result: Optional[DiseaseResult] = Field(None, description="病虫害识别结果")
+    weather_data: Optional[Dict[str, Any]] = Field(None, description="天气数据")
     weather_analysis: Optional[AgentResult] = Field(None, description="天气分析")
     soil_analysis: Optional[AgentResult] = Field(None, description="土壤分析")
     irrigation_advice: Optional[AgentResult] = Field(None, description="灌溉建议")
@@ -90,22 +107,6 @@ class DiagnosisResponse(BaseModel):
     memory_analysis: Optional[AgentResult] = Field(None, description="记忆分析")
     final_advice: Optional[str] = Field(None, description="最终综合建议")
     error: Optional[str] = Field(None, description="错误信息")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "diagnosis_id": 1,
-                "disease_result": {
-                    "disease_name": "番茄-早疫病",
-                    "confidence": 0.85,
-                    "symptoms": ["斑点", "变色"],
-                    "is_healthy": False,
-                    "source": "model"
-                },
-                "final_advice": "建议使用百菌清进行防治..."
-            }
-        }
 
 
 class LocationResponse(BaseModel):
@@ -146,3 +147,13 @@ class HealthResponse(BaseModel):
     status: str = Field("ok", description="服务状态")
     version: str = Field("1.0.0", description="版本号")
     timestamp: str = Field(..., description="当前时间")
+
+
+class ChatResponse(BaseModel):
+    """
+    追问响应模型
+    """
+    success: bool = Field(..., description="是否成功")
+    message: Optional[str] = Field(None, description="AI 回复")
+    diagnosis_id: Optional[int] = Field(None, description="诊断记录 ID")
+    error: Optional[str] = Field(None, description="错误信息")

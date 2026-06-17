@@ -5,10 +5,11 @@
 日期: 2026/6/16
 """
 
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 from datetime import datetime
+import json
 
 from .schemas import (
     DiagnosisRequest,
@@ -19,7 +20,9 @@ from .schemas import (
     UserProfileResponse,
     HealthResponse,
     DiseaseResult,
-    AgentResult
+    AgentResult,
+    ChatRequest,
+    ChatResponse
 )
 
 from services.llm_service import LLMService
@@ -107,7 +110,7 @@ async def create_diagnosis(
         location_result = await location_service.resolve_location(
             browser_location=request.browser_location,
             manual_location=request.location,
-            client_ip=None  # TODO: 从请求中获取客户端 IP
+            client_ip=None
         )
 
         latitude = location_result.get("latitude", request.latitude or 0)
@@ -117,7 +120,7 @@ async def create_diagnosis(
         # 创建诊断记录
         diagnosis_record = db_service.create_diagnosis_record(
             user_id=user.id,
-            image_path=None,  # 图片路径稍后更新
+            image_path=None,
             text_input=request.text_input,
             location=location,
             latitude=latitude,
@@ -128,18 +131,14 @@ async def create_diagnosis(
         image_analysis = None
         image_path = None
         if file:
-            # 保存图片
             image_path = f"uploads/{diagnosis_record.id}_{file.filename}"
             with open(image_path, "wb") as f:
                 content = await file.read()
                 f.write(content)
 
-            # 处理图片
             image_result = await image_processor.process_image(image_path)
             if image_result.get("success"):
                 image_analysis = image_result
-
-                # 更新诊断记录的图片路径
                 db_service.update_diagnosis_result(
                     diagnosis_record.id,
                     image_path=image_path
@@ -158,6 +157,12 @@ async def create_diagnosis(
             image_analysis.get("features") if image_analysis else None
         )
 
+        # 获取天气数据
+        weather_data = await weather_service.get_weather(latitude, longitude)
+
+        # 获取土壤数据
+        soil_data = await soil_service.analyze_soil(latitude, longitude, location)
+
         # 构建上下文
         context = {
             "user_id": user.id,
@@ -167,7 +172,9 @@ async def create_diagnosis(
             "disease_result": disease_result,
             "latitude": latitude,
             "longitude": longitude,
-            "location": location
+            "location": location,
+            "weather_data": weather_data,
+            "soil_data": soil_data
         }
 
         # 使用 Supervisor Agent 调度任务
@@ -196,11 +203,9 @@ async def create_diagnosis(
         calendar_result = agent_results.get("calendar_agent", {})
         memory_result = agent_results.get("memory_agent", {})
 
-        # 更新上下文，添加 Agent 结果
+        # 更新上下文
         context.update({
-            "weather_data": weather_result.get("weather_data", {}),
             "weather_analysis": weather_result.get("impact_analysis", {}),
-            "soil_data": soil_result,
             "irrigation_advice": irrigation_result,
             "safety_advice": safety_result
         })
@@ -239,6 +244,7 @@ async def create_diagnosis(
                 is_healthy=disease_result.get("is_healthy", False),
                 source=disease_result.get("source", "model")
             ),
+            weather_data=weather_data,
             weather_analysis=AgentResult(
                 success=weather_result.get("success", False),
                 analysis=weather_result.get("impact_analysis", {}).get("analysis"),
@@ -274,6 +280,90 @@ async def create_diagnosis(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_with_ai(request: ChatRequest):
+    """
+    追问接口，用户可以基于诊断结果继续提问
+
+    Args:
+        request: 追问请求
+
+    Returns:
+        AI 回复
+    """
+    try:
+        # 获取诊断记录
+        diagnosis_id = request.diagnosis_id
+        user_message = request.message
+
+        # 获取历史记录
+        user = db_service.get_or_create_default_user()
+        history = db_service.get_user_diagnosis_history(user.id, limit=100)
+
+        # 查找对应的诊断记录
+        diagnosis_record = None
+        for record in history:
+            if record.id == diagnosis_id:
+                diagnosis_record = record
+                break
+
+        if not diagnosis_record:
+            return ChatResponse(
+                success=False,
+                error="未找到诊断记录"
+            )
+
+        # 构建对话上下文
+        context = {
+            "disease_result": diagnosis_record.disease_result or {},
+            "weather_analysis": diagnosis_record.weather_analysis or {},
+            "soil_analysis": diagnosis_record.soil_analysis or {},
+            "irrigation_advice": diagnosis_record.irrigation_advice or {},
+            "safety_advice": diagnosis_record.safety_advice or {},
+            "calendar_advice": diagnosis_record.calendar_advice or {},
+            "final_advice": diagnosis_record.final_advice or ""
+        }
+
+        # 构建提示词
+        system_prompt = """你是一个资深的农业专家助手。用户之前进行了番茄病虫害诊断，现在想进一步了解相关信息。
+请根据诊断结果和用户的问题，提供专业、详细、实用的回答。
+
+回答要求：
+1. 基于诊断结果，不要编造信息
+2. 语言通俗易懂，适合农户理解
+3. 提供具体可操作的建议
+4. 如果涉及用药，提醒安全注意事项"""
+
+        # 构建用户消息
+        user_prompt = f"""诊断背景：
+- 病害：{context['disease_result'].get('disease_name', '未知')}
+- 诊断建议：{context['final_advice'][:500]}...
+
+用户问题：{user_message}
+
+请回答用户的问题："""
+
+        # 调用 LLM
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        response = await llm_service.chat(messages)
+
+        return ChatResponse(
+            success=True,
+            message=response,
+            diagnosis_id=diagnosis_id
+        )
+
+    except Exception as e:
+        return ChatResponse(
+            success=False,
+            error=str(e)
+        )
 
 
 @router.post("/location", response_model=LocationResponse)
@@ -314,6 +404,25 @@ async def resolve_location(request: LocationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/weather/{latitude}/{longitude}")
+async def get_weather(latitude: float, longitude: float):
+    """
+    获取天气信息
+
+    Args:
+        latitude: 纬度
+        longitude: 经度
+
+    Returns:
+        天气信息
+    """
+    try:
+        result = await weather_service.get_weather(latitude, longitude)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/history", response_model=HistoryResponse)
 async def get_diagnosis_history(limit: int = 10):
     """
@@ -345,6 +454,53 @@ async def get_diagnosis_history(limit: int = 10):
             total=len(history)
         )
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/diagnosis/{diagnosis_id}")
+async def get_diagnosis_detail(diagnosis_id: int):
+    """
+    获取诊断详情
+
+    Args:
+        diagnosis_id: 诊断记录 ID
+
+    Returns:
+        诊断详情
+    """
+    try:
+        user = db_service.get_or_create_default_user()
+        history = db_service.get_user_diagnosis_history(user.id, limit=1000)
+
+        # 查找对应的诊断记录
+        diagnosis_record = None
+        for record in history:
+            if record.id == diagnosis_id:
+                diagnosis_record = record
+                break
+
+        if not diagnosis_record:
+            raise HTTPException(status_code=404, detail="诊断记录不存在")
+
+        return {
+            "success": True,
+            "diagnosis_id": diagnosis_record.id,
+            "disease_result": diagnosis_record.disease_result,
+            "weather_analysis": diagnosis_record.weather_analysis,
+            "soil_analysis": diagnosis_record.soil_analysis,
+            "irrigation_advice": diagnosis_record.irrigation_advice,
+            "safety_advice": diagnosis_record.safety_advice,
+            "calendar_advice": diagnosis_record.calendar_advice,
+            "final_advice": diagnosis_record.final_advice,
+            "location": diagnosis_record.location,
+            "latitude": diagnosis_record.latitude,
+            "longitude": diagnosis_record.longitude,
+            "created_at": diagnosis_record.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

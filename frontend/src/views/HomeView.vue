@@ -1,6 +1,6 @@
 <!--
 文件名: HomeView.vue
-功能描述: 首页组件，提供图片上传和文字输入功能
+功能描述: 首页组件，提供图片上传、文字输入和天气显示
 作者: ZT
 日期: 2026/6/16
 -->
@@ -8,136 +8,263 @@
 <template>
   <div class="home-view">
     <!-- 欢迎区域 -->
-    <div class="text-center mb-5">
-      <h1 class="display-5 fw-bold text-success">
-        <i class="bi bi-flower1"></i> 番茄病虫害智能诊断
+    <div class="hero-section text-center mb-4">
+      <h1 class="display-5 fw-bold">
+        <i class="bi bi-flower1 text-success"></i> 番茄病虫害智能诊断
       </h1>
-      <p class="lead text-muted">
-        上传番茄图片或描述症状，AI 助手为您提供专业的防治建议
-      </p>
+      <p class="lead text-muted">上传图片或描述症状，AI 助手为您提供专业的防治建议</p>
     </div>
 
-    <!-- 诊断表单 -->
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        <div class="card shadow-sm">
-          <div class="card-body p-4">
-            <h5 class="card-title mb-4">
-              <i class="bi bi-pencil-square"></i> 开始诊断
-            </h5>
-
-            <!-- 图片上传区域 -->
-            <div class="mb-4">
-              <label class="form-label fw-bold">上传图片（可选）</label>
-              <div
-                class="upload-area border rounded p-4 text-center"
-                :class="{ 'border-success': imagePreview }"
-                @click="triggerFileInput"
-                @dragover.prevent
-                @drop.prevent="handleDrop"
-              >
-                <div v-if="!imagePreview">
-                  <i class="bi bi-cloud-arrow-up fs-1 text-muted"></i>
-                  <p class="mt-2 mb-0 text-muted">
-                    点击或拖拽图片到此处上传
-                  </p>
-                  <small class="text-muted">支持 JPG、PNG、BMP、WebP 格式，最大 10MB</small>
-                </div>
-                <div v-else>
-                  <img :src="imagePreview" class="img-fluid rounded" style="max-height: 300px;" alt="预览">
-                  <p class="mt-2 mb-0 text-success">
-                    <i class="bi bi-check-circle"></i> 图片已选择
-                  </p>
+    <!-- 主内容区域 - 左右布局 -->
+    <div class="row">
+      <!-- 左侧：诊断输入 -->
+      <div class="col-lg-7">
+        <!-- 诊断方式选择 -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-tools"></i> 选择诊断方式</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div
+                  class="diagnosis-option p-3 border rounded text-center cursor-pointer h-100"
+                  :class="{ 'border-success bg-light': diagnosisMode === 'image' }"
+                  @click="diagnosisMode = 'image'"
+                >
+                  <i class="bi bi-camera fs-1 text-success"></i>
+                  <h6 class="mt-2 mb-0">图片诊断</h6>
+                  <small class="text-muted">上传病害图片</small>
                 </div>
               </div>
-              <input
-                ref="fileInput"
-                type="file"
-                class="d-none"
-                accept="image/*"
-                @change="handleFileSelect"
-              >
-            </div>
-
-            <!-- 文字输入区域 -->
-            <div class="mb-4">
-              <label class="form-label fw-bold">描述症状（可选）</label>
-              <textarea
-                v-model="textInput"
-                class="form-control"
-                rows="4"
-                placeholder="请描述番茄的症状，例如：叶子出现黄色斑点，有腐烂迹象..."
-              ></textarea>
-            </div>
-
-            <!-- 位置信息 -->
-            <div class="mb-4">
-              <label class="form-label fw-bold">位置信息</label>
-              <div class="input-group">
-                <input
-                  v-model="locationInput"
-                  type="text"
-                  class="form-control"
-                  placeholder="输入位置（如：北京市海淀区）或点击定位按钮"
+              <div class="col-md-4">
+                <div
+                  class="diagnosis-option p-3 border rounded text-center cursor-pointer h-100"
+                  :class="{ 'border-success bg-light': diagnosisMode === 'text' }"
+                  @click="diagnosisMode = 'text'"
                 >
-                <button
-                  class="btn btn-outline-success"
-                  type="button"
-                  @click="getCurrentLocation"
-                  :disabled="locating"
+                  <i class="bi bi-chat-text fs-1 text-primary"></i>
+                  <h6 class="mt-2 mb-0">文字描述</h6>
+                  <small class="text-muted">描述症状特征</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div
+                  class="diagnosis-option p-3 border rounded text-center cursor-pointer h-100"
+                  :class="{ 'border-success bg-light': diagnosisMode === 'both' }"
+                  @click="diagnosisMode = 'both'"
                 >
-                  <i class="bi bi-geo-alt"></i>
-                  {{ locating ? '定位中...' : '自动定位' }}
+                  <i class="bi bi-layers fs-1 text-warning"></i>
+                  <h6 class="mt-2 mb-0">综合诊断</h6>
+                  <small class="text-muted">图片+文字</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图片上传区域 -->
+        <div class="card shadow-sm mb-4" v-if="diagnosisMode === 'image' || diagnosisMode === 'both'">
+          <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-image"></i> 上传番茄图片</h6>
+          </div>
+          <div class="card-body">
+            <div
+              class="upload-area border rounded p-4 text-center"
+              :class="{ 'border-success bg-light-green': imagePreview }"
+              @click="triggerFileInput"
+              @dragover.prevent
+              @drop.prevent="handleDrop"
+            >
+              <div v-if="!imagePreview">
+                <i class="bi bi-cloud-arrow-up fs-1 text-success"></i>
+                <p class="mt-2 mb-0 fw-bold">点击或拖拽图片到此处</p>
+                <small class="text-muted">支持 JPG、PNG、BMP、WebP 格式，最大 10MB</small>
+              </div>
+              <div v-else>
+                <img :src="imagePreview" class="img-fluid rounded" style="max-height: 250px;" alt="预览">
+                <p class="mt-2 mb-0 text-success fw-bold">
+                  <i class="bi bi-check-circle"></i> 图片已选择
+                </p>
+                <button class="btn btn-sm btn-outline-danger mt-2" @click.stop="clearImage">
+                  <i class="bi bi-x"></i> 移除图片
                 </button>
               </div>
-              <small class="text-muted">
-                位置信息用于土壤分析和天气查询，可选填
-              </small>
             </div>
+            <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="handleFileSelect">
+          </div>
+        </div>
 
-            <!-- 提交按钮 -->
-            <div class="d-grid">
-              <button
-                class="btn btn-success btn-lg"
-                @click="submitDiagnosis"
-                :disabled="loading || (!imageFile && !textInput)"
+        <!-- 文字输入区域 -->
+        <div class="card shadow-sm mb-4" v-if="diagnosisMode === 'text' || diagnosisMode === 'both'">
+          <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-pencil-square"></i> 描述症状</h6>
+          </div>
+          <div class="card-body">
+            <textarea
+              v-model="textInput"
+              class="form-control form-control-lg"
+              rows="5"
+              placeholder="请详细描述番茄的症状，例如：&#10;- 叶子出现黄色斑点，边缘枯萎&#10;- 果实表面有腐烂迹象&#10;- 茎秆出现变色..."
+            ></textarea>
+            <div class="mt-2">
+              <small class="text-muted">常见症状：</small>
+              <span
+                v-for="symptom in commonSymptoms"
+                :key="symptom"
+                class="badge bg-light text-dark me-1 mb-1 cursor-pointer symptom-tag"
+                @click="addSymptom(symptom)"
               >
-                <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                <i v-else class="bi bi-search me-2"></i>
-                {{ loading ? '诊断中...' : '开始诊断' }}
+                {{ symptom }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 位置信息 -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-geo-alt"></i> 位置信息</h6>
+          </div>
+          <div class="card-body">
+            <div class="input-group">
+              <input
+                v-model="locationInput"
+                type="text"
+                class="form-control"
+                placeholder="输入位置或点击自动定位"
+              >
+              <button
+                class="btn btn-outline-success"
+                type="button"
+                @click="getCurrentLocation"
+                :disabled="locating"
+              >
+                <i class="bi bi-geo-alt-fill"></i>
+                {{ locating ? '定位中...' : '自动定位' }}
               </button>
             </div>
+            <small class="text-muted">位置信息用于天气查询和土壤分析</small>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- 功能介绍 -->
-    <div class="row mt-5">
-      <div class="col-md-4 mb-3">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body text-center">
-            <i class="bi bi-camera fs-1 text-success"></i>
-            <h5 class="mt-3">图片识别</h5>
-            <p class="text-muted">上传番茄图片，AI 自动识别病虫害类型</p>
-          </div>
+        <!-- 提交按钮 -->
+        <div class="d-grid mb-4">
+          <button
+            class="btn btn-success btn-lg py-3"
+            @click="submitDiagnosis"
+            :disabled="loading || !canSubmit"
+          >
+            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+            <i v-else class="bi bi-search-heart me-2"></i>
+            {{ loading ? '正在诊断...' : '开始诊断' }}
+          </button>
         </div>
       </div>
-      <div class="col-md-4 mb-3">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body text-center">
-            <i class="bi bi-chat-dots fs-1 text-success"></i>
-            <h5 class="mt-3">智能分析</h5>
-            <p class="text-muted">多维度分析，提供综合防治建议</p>
+
+      <!-- 右侧：天气信息 -->
+      <div class="col-lg-5">
+        <!-- 天气卡片 -->
+        <div class="card shadow-sm mb-4 weather-card" v-if="weatherData && weatherData.success">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-cloud-sun"></i> 当地天气</h5>
+          </div>
+          <div class="card-body">
+            <!-- 今日天气 -->
+            <div class="text-center mb-3">
+              <i :class="getWeatherIcon(weatherData.today?.skycon)" class="display-3"></i>
+              <h3 class="mt-2 mb-0">{{ weatherData.today?.description }}</h3>
+              <p class="text-muted">{{ weatherData.today?.date }}</p>
+            </div>
+
+            <div class="row text-center mb-3">
+              <div class="col-4">
+                <div class="p-2 border rounded">
+                  <div class="fs-3 fw-bold text-danger">{{ weatherData.today?.temperature?.max?.toFixed(0) }}°C</div>
+                  <small class="text-muted">最高温</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 border rounded">
+                  <div class="fs-3 fw-bold text-primary">{{ weatherData.today?.temperature?.min?.toFixed(0) }}°C</div>
+                  <small class="text-muted">最低温</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 border rounded">
+                  <div class="fs-3 fw-bold text-info">{{ weatherData.today?.humidity?.avg?.toFixed(0) }}%</div>
+                  <small class="text-muted">湿度</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- 农事建议 -->
+            <div class="alert alert-success mb-3" v-if="farmingAdvice">
+              <i class="bi bi-lightbulb"></i> {{ farmingAdvice }}
+            </div>
+
+            <!-- 未来预报 -->
+            <h6 class="text-muted mb-2">未来预报</h6>
+            <div class="row g-2">
+              <div v-for="(day, index) in weatherData.forecast" :key="index" class="col text-center">
+                <div class="p-2 border rounded bg-light">
+                  <div class="fw-bold small">{{ index === 0 ? '今天' : index === 1 ? '明天' : '后天' }}</div>
+                  <i :class="getWeatherIcon(day.skycon)" class="fs-5"></i>
+                  <div class="small">{{ day.description }}</div>
+                  <div class="small">
+                    <span class="text-danger">{{ day.temperature?.max?.toFixed(0) }}°</span>
+                    <span class="text-muted">/</span>
+                    <span class="text-primary">{{ day.temperature?.min?.toFixed(0) }}°</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-4 mb-3">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body text-center">
-            <i class="bi bi-calendar-check fs-1 text-success"></i>
-            <h5 class="mt-3">农事提醒</h5>
-            <p class="text-muted">生成种植日历，智能农事提醒</p>
+
+        <!-- 定位提示 -->
+        <div class="card shadow-sm mb-4" v-if="!weatherData">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-geo-alt fs-1 text-muted"></i>
+            <h5 class="mt-3 text-muted">请先定位获取天气</h5>
+            <p class="text-muted">点击左侧"自动定位"按钮</p>
+          </div>
+        </div>
+
+        <!-- 使用提示 -->
+        <div class="card shadow-sm">
+          <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-info-circle"></i> 使用提示</h6>
+          </div>
+          <div class="card-body">
+            <div class="d-flex mb-3">
+              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+              <div>
+                <strong>清晰拍摄</strong>
+                <p class="mb-0 small text-muted">请在光线充足的环境下拍摄病害部位</p>
+              </div>
+            </div>
+            <div class="d-flex mb-3">
+              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+              <div>
+                <strong>详细描述</strong>
+                <p class="mb-0 small text-muted">描述症状出现的时间、部位和变化过程</p>
+              </div>
+            </div>
+            <div class="d-flex mb-3">
+              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+              <div>
+                <strong>准确定位</strong>
+                <p class="mb-0 small text-muted">提供位置信息可获得更精准的天气和土壤分析</p>
+              </div>
+            </div>
+            <div class="d-flex">
+              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+              <div>
+                <strong>综合诊断</strong>
+                <p class="mb-0 small text-muted">图片+文字描述可获得更准确的诊断结果</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -148,7 +275,7 @@
 <script>
 /**
  * 首页组件
- * 提供图片上传、文字输入和位置定位功能
+ * 提供图片上传、文字输入和天气显示功能
  */
 import axios from 'axios'
 
@@ -156,6 +283,7 @@ export default {
   name: 'HomeView',
   data() {
     return {
+      diagnosisMode: 'both', // image, text, both
       imageFile: null,
       imagePreview: null,
       textInput: '',
@@ -163,7 +291,46 @@ export default {
       latitude: null,
       longitude: null,
       locating: false,
-      loading: false
+      loading: false,
+      weatherData: null,
+      commonSymptoms: ['黄叶', '枯萎', '斑点', '腐烂', '卷叶', '虫蛀', '变色', '脱落']
+    }
+  },
+  computed: {
+    /**
+     * 判断是否可以提交
+     */
+    canSubmit() {
+      if (this.diagnosisMode === 'image') return !!this.imageFile
+      if (this.diagnosisMode === 'text') return !!this.textInput.trim()
+      if (this.diagnosisMode === 'both') return !!this.imageFile || !!this.textInput.trim()
+      return false
+    },
+
+    /**
+     * 根据天气生成农事建议
+     */
+    farmingAdvice() {
+      if (!this.weatherData || !this.weatherData.today) return ''
+
+      const today = this.weatherData.today
+      const temp = today.temperature?.avg || 0
+      const humidity = today.humidity?.avg || 0
+      const skycon = today.skycon || ''
+
+      if (skycon.includes('RAIN')) {
+        return '今日有雨，不宜施药，注意排水防涝'
+      }
+      if (temp > 35) {
+        return '高温天气，注意遮阳降温，避免中午浇水'
+      }
+      if (temp < 10) {
+        return '温度较低，注意防寒保暖'
+      }
+      if (humidity > 80) {
+        return '湿度较高，注意通风，预防病害发生'
+      }
+      return '天气适宜，适合进行田间管理'
     }
   },
   methods: {
@@ -179,9 +346,7 @@ export default {
      */
     handleFileSelect(event) {
       const file = event.target.files[0]
-      if (file) {
-        this.setImage(file)
-      }
+      if (file) this.setImage(file)
     },
 
     /**
@@ -189,23 +354,39 @@ export default {
      */
     handleDrop(event) {
       const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) {
-        this.setImage(file)
-      }
+      if (file && file.type.startsWith('image/')) this.setImage(file)
     },
 
     /**
      * 设置图片文件
      */
     setImage(file) {
-      // 验证文件大小
       if (file.size > 10 * 1024 * 1024) {
         alert('图片大小不能超过 10MB')
         return
       }
-
       this.imageFile = file
       this.imagePreview = URL.createObjectURL(file)
+    },
+
+    /**
+     * 清除图片
+     */
+    clearImage() {
+      this.imageFile = null
+      if (this.imagePreview) URL.revokeObjectURL(this.imagePreview)
+      this.imagePreview = null
+    },
+
+    /**
+     * 添加常见症状到输入框
+     */
+    addSymptom(symptom) {
+      if (this.textInput) {
+        this.textInput += '，' + symptom
+      } else {
+        this.textInput = symptom
+      }
     },
 
     /**
@@ -215,14 +396,16 @@ export default {
       this.locating = true
 
       try {
-        // 尝试使用浏览器定位
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
               this.latitude = position.coords.latitude
               this.longitude = position.coords.longitude
-              // 直接使用经纬度作为位置，不调用反向地理编码
               this.locationInput = `${this.latitude.toFixed(4)}, ${this.longitude.toFixed(4)}`
+
+              // 获取天气数据
+              await this.loadWeather()
+
               this.locating = false
             },
             (error) => {
@@ -231,8 +414,8 @@ export default {
               this.locating = false
             },
             {
-              timeout: 10000,  // 10秒超时
-              maximumAge: 300000  // 5分钟内缓存有效
+              timeout: 10000,
+              maximumAge: 300000
             }
           )
         } else {
@@ -246,10 +429,69 @@ export default {
     },
 
     /**
+     * 加载天气数据
+     */
+    async loadWeather() {
+      if (!this.latitude || !this.longitude) {
+        console.log('缺少经纬度，无法加载天气')
+        return
+      }
+
+      console.log('正在加载天气数据:', this.latitude, this.longitude)
+
+      try {
+        const url = `/api/weather/${this.latitude}/${this.longitude}`
+        console.log('请求 URL:', url)
+
+        const response = await axios.get(url)
+        console.log('天气 API 响应:', response.data)
+
+        if (response.data && response.data.success) {
+          this.weatherData = response.data
+          console.log('天气数据加载成功:', this.weatherData)
+        } else {
+          console.error('天气数据返回失败:', response.data)
+        }
+      } catch (error) {
+        console.error('加载天气失败:', error)
+        if (error.response) {
+          console.error('错误响应:', error.response.data)
+        }
+      }
+    },
+
+    /**
+     * 获取天气图标
+     */
+    getWeatherIcon(skycon) {
+      const icons = {
+        'CLEAR_DAY': 'bi bi-sun text-warning',
+        'CLEAR_NIGHT': 'bi bi-moon text-primary',
+        'PARTLY_CLOUDY_DAY': 'bi bi-cloud-sun text-info',
+        'PARTLY_CLOUDY_NIGHT': 'bi bi-cloud-moon text-primary',
+        'CLOUDY': 'bi bi-cloud text-secondary',
+        'LIGHT_HAZE': 'bi bi-cloud-haze text-secondary',
+        'MODERATE_HAZE': 'bi bi-cloud-haze text-secondary',
+        'HEAVY_HAZE': 'bi bi-cloud-haze text-dark',
+        'LIGHT_RAIN': 'bi bi-cloud-drizzle text-info',
+        'MODERATE_RAIN': 'bi bi-cloud-rain text-primary',
+        'HEAVY_RAIN': 'bi bi-cloud-rain-heavy text-primary',
+        'STORM_RAIN': 'bi bi-cloud-lightning-rain text-dark',
+        'FOG': 'bi bi-cloud-fog text-secondary',
+        'LIGHT_SNOW': 'bi bi-cloud-snow text-info',
+        'MODERATE_SNOW': 'bi bi-cloud-snow text-primary',
+        'HEAVY_SNOW': 'bi bi-cloud-snow text-dark',
+        'STORM_SNOW': 'bi bi-cloud-snow text-dark',
+        'WIND': 'bi bi-wind text-info'
+      }
+      return icons[skycon] || 'bi bi-cloud text-secondary'
+    },
+
+    /**
      * 提交诊断请求
      */
     async submitDiagnosis() {
-      if (!this.imageFile && !this.textInput) {
+      if (!this.canSubmit) {
         alert('请上传图片或输入症状描述')
         return
       }
@@ -257,14 +499,12 @@ export default {
       this.loading = true
 
       try {
-        // 创建 FormData
         const formData = new FormData()
 
         if (this.imageFile) {
           formData.append('file', this.imageFile)
         }
 
-        // 添加其他参数
         const requestData = {
           text_input: this.textInput || null,
           latitude: this.latitude,
@@ -274,15 +514,11 @@ export default {
 
         formData.append('request', JSON.stringify(requestData))
 
-        // 发送请求
         const response = await axios.post('/api/diagnosis', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+          headers: { 'Content-Type': 'multipart/form-data' }
         })
 
         if (response.data.success) {
-          // 跳转到结果页面
           this.$router.push({
             name: 'Result',
             params: { id: response.data.diagnosis_id }
@@ -299,19 +535,37 @@ export default {
     }
   },
   beforeUnmount() {
-    // 清理预览 URL
-    if (this.imagePreview) {
-      URL.revokeObjectURL(this.imagePreview)
-    }
+    if (this.imagePreview) URL.revokeObjectURL(this.imagePreview)
   }
 }
 </script>
 
 <style scoped>
+.hero-section {
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e9 100%);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.diagnosis-option {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.diagnosis-option:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 .upload-area {
   cursor: pointer;
   transition: all 0.3s ease;
   background-color: #fafafa;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .upload-area:hover {
@@ -321,5 +575,23 @@ export default {
 
 .upload-area.border-success {
   background-color: #f0fff0;
+}
+
+.bg-light-green {
+  background-color: #f0fff0 !important;
+}
+
+.weather-card {
+  position: sticky;
+  top: 20px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.symptom-tag:hover {
+  background-color: #198754 !important;
+  color: white !important;
 }
 </style>

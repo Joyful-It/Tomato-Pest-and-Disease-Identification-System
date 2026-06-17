@@ -1,32 +1,49 @@
 /**
  * 文件名: styles.css
- * 功能描述: 全局自定义样式
+ * 功能描述: 全局自定义样式 - 农业风格主题
  * 作者: ZT
  * 日期: 2026/6/16
  */
 
 /* 全局变量 */
 :root {
-  --primary-green: #198754;
-  --light-green: #f0fff0;
-  --dark-green: #0d6efd;
+  --primary-green: #2e7d32;
+  --light-green: #e8f5e9;
+  --dark-green: #1b5e20;
+  --accent-orange: #ff8f00;
+  --accent-blue: #0288d1;
+  --bg-cream: #fafafa;
 }
 
 /* 全局样式 */
 body {
   font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
-  background-color: #f8f9fa;
+  background-color: var(--bg-cream);
   color: #333;
 }
 
-/* 链接样式 */
-a {
-  color: var(--primary-green);
-  text-decoration: none;
+/* 导航栏 */
+.navbar {
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-a:hover {
-  color: var(--dark-green);
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.3rem;
+}
+
+/* 卡片样式 */
+.card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  border-bottom: none;
+  font-weight: 600;
 }
 
 /* 按钮样式 */
@@ -50,27 +67,16 @@ a:hover {
   border-color: var(--primary-green);
 }
 
-/* 卡片样式 */
-.card {
-  border: none;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.card-header {
-  border-bottom: none;
+/* 表单样式 */
+.form-control:focus {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
 }
 
 /* 徽章样式 */
 .badge {
   font-weight: 500;
   padding: 6px 12px;
-}
-
-/* 表单样式 */
-.form-control:focus {
-  border-color: var(--primary-green);
-  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
 }
 
 /* 手风琴样式 */
@@ -80,12 +86,28 @@ a:hover {
 }
 
 .accordion-button:focus {
-  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
 }
 
-/* 加载动画 */
-.spinner-border {
+/* 天气图标 */
+.bi-sun { color: #ffc107; }
+.bi-moon { color: #6c757d; }
+.bi-cloud-sun { color: #17a2b8; }
+.bi-cloud { color: #6c757d; }
+.bi-cloud-rain { color: #007bff; }
+.bi-cloud-rain-heavy { color: #0056b3; }
+.bi-cloud-lightning-rain { color: #343a40; }
+.bi-cloud-snow { color: #17a2b8; }
+.bi-wind { color: #17a2b8; }
+
+/* 链接样式 */
+a {
   color: var(--primary-green);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--dark-green);
 }
 
 /* 响应式调整 */
@@ -93,34 +115,6 @@ a:hover {
   .display-5 {
     font-size: 1.8rem;
   }
-
-  .display-4 {
-    font-size: 2.5rem;
-  }
-}
-
-/* 工具类 */
-.text-success {
-  color: var(--primary-green) !important;
-}
-
-.bg-success {
-  background-color: var(--primary-green) !important;
-}
-
-/* 阴影效果 */
-.shadow-sm {
-  box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
-}
-
-.shadow {
-  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
-}
-
-/* 过渡效果 */
-.card,
-.btn {
-  transition: all 0.2s ease;
 }
 
 /* 滚动条样式 */
@@ -140,4 +134,16 @@ a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--dark-green);
+}
+
+/* 过渡效果 */
+.card,
+.btn {
+  transition: all 0.2s ease;
+}
+
+/* 页脚 */
+footer {
+  background-color: #f8f9fa !important;
+  border-top: 1px solid #e9ecef;
 }

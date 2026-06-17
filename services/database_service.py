@@ -208,7 +208,7 @@ class DatabaseService:
         user_id: int,
         memory_type: str,
         content: str,
-        metadata: Optional[Dict] = None
+        extra_data: Optional[Dict] = None
     ) -> UserMemory:
         """
         添加用户记忆
@@ -217,7 +217,7 @@ class DatabaseService:
             user_id: 用户ID
             memory_type: 记忆类型
             content: 记忆内容
-            metadata: 元数据
+            extra_data: 元数据
 
         Returns:
             记忆对象
@@ -228,7 +228,7 @@ class DatabaseService:
                 user_id=user_id,
                 memory_type=memory_type,
                 content=content,
-                metadata=metadata or {}
+                extra_data=extra_data or {}
             )
             session.add(memory)
             session.commit()

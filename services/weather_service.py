@@ -1,24 +1,23 @@
 """
 文件名: weather_service.py
-功能描述: 天气服务封装，提供天气查询功能（彩云天气 API 预留）
+功能描述: 天气服务封装，提供天气查询功能（彩云天气 API）
 作者: ZT
 日期: 2026/6/16
 """
 
 from typing import Optional, Dict, Any
 import httpx
-from config import CAIYUN_API_KEY
 
 
 class WeatherService:
     """
     天气服务类
-    封装彩云天气 API 调用（预留接口）
+    封装彩云天气 API 调用
     """
 
     def __init__(self):
         """初始化天气服务"""
-        self.api_key = CAIYUN_API_KEY
+        self.api_key = "bpxwpKFicBRp71m6"
         self.base_url = "https://api.caiyunapp.com/v2.6"
 
     async def get_weather(
@@ -36,15 +35,11 @@ class WeatherService:
         Returns:
             天气信息字典
         """
-        # 检查 API Key 是否配置
-        if not self.api_key:
-            return self._get_mock_weather(latitude, longitude)
-
         try:
             url = f"{self.base_url}/{self.api_key}/{longitude},{latitude}/weather"
             params = {
-                "dailysteps": 7,
-                "hourlysteps": 24
+                "dailysteps": 3,
+                "hourlysteps": 48
             }
 
             async with httpx.AsyncClient() as client:
@@ -78,18 +73,25 @@ class WeatherService:
         """
         result = data.get("result", {})
         daily = result.get("daily", {})
+        hourly = result.get("hourly", {})
         temperature = daily.get("temperature", [])
         humidity = daily.get("humidity", [])
         skycon = daily.get("skycon", [])
+        precipitation = daily.get("precipitation", [])
 
         # 获取今天的天气
         today_temp = temperature[0] if temperature else {}
         today_humidity = humidity[0] if humidity else {}
         today_skycon = skycon[0] if skycon else {}
+        today_precip = precipitation[0] if precipitation else {}
+
+        # 获取小时级数据
+        hourly_data = self._parse_hourly(hourly)
 
         return {
             "success": True,
             "today": {
+                "date": today_temp.get("date", ""),
                 "temperature": {
                     "max": today_temp.get("max", 0),
                     "min": today_temp.get("min", 0),
@@ -99,9 +101,13 @@ class WeatherService:
                     "avg": today_humidity.get("avg", 0)
                 },
                 "skycon": today_skycon.get("value", ""),
-                "description": self._get_skycon_description(today_skycon.get("value", ""))
+                "description": self._get_skycon_description(today_skycon.get("value", "")),
+                "precipitation": {
+                    "avg": today_precip.get("avg", 0)
+                }
             },
             "forecast": self._parse_forecast(daily),
+            "hourly": hourly_data,
             "source": "caiyun"
         }
 
@@ -118,22 +124,63 @@ class WeatherService:
         forecast = []
         temperature = daily.get("temperature", [])
         skycon = daily.get("skycon", [])
+        humidity = daily.get("humidity", [])
+        precipitation = daily.get("precipitation", [])
 
-        for i in range(min(7, len(temperature))):
+        for i in range(min(3, len(temperature))):
             temp = temperature[i] if i < len(temperature) else {}
             sky = skycon[i] if i < len(skycon) else {}
+            hum = humidity[i] if i < len(humidity) else {}
+            precip = precipitation[i] if i < len(precipitation) else {}
 
             forecast.append({
                 "day": i + 1,
+                "date": temp.get("date", ""),
                 "temperature": {
                     "max": temp.get("max", 0),
                     "min": temp.get("min", 0)
                 },
                 "skycon": sky.get("value", ""),
-                "description": self._get_skycon_description(sky.get("value", ""))
+                "description": self._get_skycon_description(sky.get("value", "")),
+                "humidity": hum.get("avg", 0),
+                "precipitation": precip.get("avg", 0)
             })
 
         return forecast
+
+    def _parse_hourly(self, hourly: Dict) -> list:
+        """
+        解析小时级数据
+
+        Args:
+            hourly: 小时级天气数据
+
+        Returns:
+            小时级数据列表
+        """
+        result = []
+        temperature = hourly.get("temperature", [])
+        humidity = hourly.get("humidity", [])
+        skycon = hourly.get("skycon", [])
+        precipitation = hourly.get("precipitation", [])
+
+        # 只取未来 24 小时
+        for i in range(min(24, len(temperature))):
+            temp = temperature[i] if i < len(temperature) else {}
+            hum = humidity[i] if i < len(humidity) else {}
+            sky = skycon[i] if i < len(skycon) else {}
+            precip = precipitation[i] if i < len(precipitation) else {}
+
+            result.append({
+                "time": temp.get("datetime", ""),
+                "temperature": temp.get("value", 0),
+                "humidity": hum.get("value", 0),
+                "skycon": sky.get("value", ""),
+                "description": self._get_skycon_description(sky.get("value", "")),
+                "precipitation": precip.get("value", 0)
+            })
+
+        return result
 
     def _get_skycon_description(self, skycon: str) -> str:
         """
@@ -167,35 +214,34 @@ class WeatherService:
         }
         return descriptions.get(skycon, "未知")
 
-    def _get_mock_weather(self, latitude: float, longitude: float) -> Dict[str, Any]:
+    def _get_skycon_icon(self, skycon: str) -> str:
         """
-        获取模拟天气数据（当 API Key 未配置时使用）
+        获取天气图标
 
         Args:
-            latitude: 纬度
-            longitude: 经度
+            skycon: 天气代码
 
         Returns:
-            模拟天气数据
+            天气图标 class
         """
-        return {
-            "success": True,
-            "today": {
-                "temperature": {
-                    "max": 28,
-                    "min": 18,
-                    "avg": 23
-                },
-                "humidity": {
-                    "avg": 65
-                },
-                "skycon": "PARTLY_CLOUDY_DAY",
-                "description": "多云"
-            },
-            "forecast": [
-                {"day": i + 1, "temperature": {"max": 28 - i, "min": 18 - i}, "skycon": "PARTLY_CLOUDY_DAY", "description": "多云"}
-                for i in range(7)
-            ],
-            "source": "mock",
-            "note": "彩云天气 API Key 未配置，使用模拟数据"
+        icons = {
+            "CLEAR_DAY": "bi bi-sun",
+            "CLEAR_NIGHT": "bi bi-moon",
+            "PARTLY_CLOUDY_DAY": "bi bi-cloud-sun",
+            "PARTLY_CLOUDY_NIGHT": "bi bi-cloud-moon",
+            "CLOUDY": "bi bi-cloud",
+            "LIGHT_HAZE": "bi bi-cloud-haze",
+            "MODERATE_HAZE": "bi bi-cloud-haze",
+            "HEAVY_HAZE": "bi bi-cloud-haze",
+            "LIGHT_RAIN": "bi bi-cloud-drizzle",
+            "MODERATE_RAIN": "bi bi-cloud-rain",
+            "HEAVY_RAIN": "bi bi-cloud-rain-heavy",
+            "STORM_RAIN": "bi bi-cloud-lightning-rain",
+            "FOG": "bi bi-cloud-fog",
+            "LIGHT_SNOW": "bi bi-cloud-snow",
+            "MODERATE_SNOW": "bi bi-cloud-snow",
+            "HEAVY_SNOW": "bi bi-cloud-snow",
+            "STORM_SNOW": "bi bi-cloud-snow",
+            "WIND": "bi bi-wind"
         }
+        return icons.get(skycon, "bi bi-cloud")

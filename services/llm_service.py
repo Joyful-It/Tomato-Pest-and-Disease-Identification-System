@@ -7,7 +7,7 @@
 
 from typing import Optional, List, Dict, Any
 from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_TEMPERATURE
 
 
@@ -67,7 +67,6 @@ class LLMService:
 
         response = await self.chat(messages)
 
-        # 解析响应（这里简化处理，实际应该用更复杂的解析）
         return {
             "raw_analysis": response,
             "has_disease": "病" in description or "虫" in description or "害" in description,
@@ -99,7 +98,6 @@ class LLMService:
         Returns:
             最终综合建议
         """
-        # 构建提示词
         prompt = self._build_final_advice_prompt(
             disease_result, weather_analysis, soil_analysis,
             irrigation_advice, safety_advice, calendar_advice, user_memory
@@ -123,7 +121,6 @@ class LLMService:
         Returns:
             症状列表
         """
-        # 简单的关键词提取（实际应该用 NLP 技术）
         symptom_keywords = [
             "黄叶", "枯萎", "斑点", "腐烂", "虫蛀", "卷曲",
             "变色", "脱落", "畸形", "萎蔫", "坏死", "水渍"
