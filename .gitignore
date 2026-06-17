@@ -33,5 +33,11 @@ uploads/*
 .DS_Store
 Thumbs.db
 
+# Model weights (too large)
+models/*_plant/
+models/swin_tiny/
+models/clip/
+models/linkjarad/
+
 # Logs
 *.log
