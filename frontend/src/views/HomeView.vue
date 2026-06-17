@@ -1,270 +1,137 @@
 <!--
 文件名: HomeView.vue
-功能描述: 首页组件，提供图片上传、文字输入和天气显示
+功能描述: 主页面 - 清新自然的农业诊断界面
 作者: ZT
-日期: 2026/6/16
+日期: 2026/6/17
 -->
 
 <template>
-  <div class="home-view">
-    <!-- 欢迎区域 -->
-    <div class="hero-section text-center mb-4">
-      <h1 class="display-5 fw-bold">
-        <i class="bi bi-flower1 text-success"></i> 番茄病虫害智能诊断
-      </h1>
-      <p class="lead text-muted">上传图片或描述症状，AI 助手为您提供专业的防治建议</p>
-    </div>
-
-    <!-- 主内容区域 - 左右布局 -->
-    <div class="row">
-      <!-- 左侧：诊断输入 -->
-      <div class="col-lg-7">
-        <!-- 诊断方式选择 -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-success text-white">
-            <h5 class="mb-0"><i class="bi bi-tools"></i> 选择诊断方式</h5>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-4">
-                <div
-                  class="diagnosis-option p-3 border rounded text-center cursor-pointer h-100"
-                  :class="{ 'border-success bg-light': diagnosisMode === 'image' }"
-                  @click="diagnosisMode = 'image'"
-                >
-                  <i class="bi bi-camera fs-1 text-success"></i>
-                  <h6 class="mt-2 mb-0">图片诊断</h6>
-                  <small class="text-muted">上传病害图片</small>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div
-                  class="diagnosis-option p-3 border rounded text-center cursor-pointer h-100"
-                  :class="{ 'border-success bg-light': diagnosisMode === 'text' }"
-                  @click="diagnosisMode = 'text'"
-                >
-                  <i class="bi bi-chat-text fs-1 text-primary"></i>
-                  <h6 class="mt-2 mb-0">文字描述</h6>
-                  <small class="text-muted">描述症状特征</small>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div
-                  class="diagnosis-option p-3 border rounded text-center cursor-pointer h-100"
-                  :class="{ 'border-success bg-light': diagnosisMode === 'both' }"
-                  @click="diagnosisMode = 'both'"
-                >
-                  <i class="bi bi-layers fs-1 text-warning"></i>
-                  <h6 class="mt-2 mb-0">综合诊断</h6>
-                  <small class="text-muted">图片+文字</small>
-                </div>
-              </div>
-            </div>
+  <div class="app">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <span class="brand-icon">🍅</span>
+          <div>
+            <h1>番茄卫士</h1>
+            <p>病虫害智能诊断</p>
           </div>
         </div>
-
-        <!-- 图片上传区域 -->
-        <div class="card shadow-sm mb-4" v-if="diagnosisMode === 'image' || diagnosisMode === 'both'">
-          <div class="card-header bg-light">
-            <h6 class="mb-0"><i class="bi bi-image"></i> 上传番茄图片</h6>
-          </div>
-          <div class="card-body">
-            <div
-              class="upload-area border rounded p-4 text-center"
-              :class="{ 'border-success bg-light-green': imagePreview }"
-              @click="triggerFileInput"
-              @dragover.prevent
-              @drop.prevent="handleDrop"
-            >
-              <div v-if="!imagePreview">
-                <i class="bi bi-cloud-arrow-up fs-1 text-success"></i>
-                <p class="mt-2 mb-0 fw-bold">点击或拖拽图片到此处</p>
-                <small class="text-muted">支持 JPG、PNG、BMP、WebP 格式，最大 10MB</small>
-              </div>
-              <div v-else>
-                <img :src="imagePreview" class="img-fluid rounded" style="max-height: 250px;" alt="预览">
-                <p class="mt-2 mb-0 text-success fw-bold">
-                  <i class="bi bi-check-circle"></i> 图片已选择
-                </p>
-                <button class="btn btn-sm btn-outline-danger mt-2" @click.stop="clearImage">
-                  <i class="bi bi-x"></i> 移除图片
-                </button>
-              </div>
-            </div>
-            <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="handleFileSelect">
-          </div>
-        </div>
-
-        <!-- 文字输入区域 -->
-        <div class="card shadow-sm mb-4" v-if="diagnosisMode === 'text' || diagnosisMode === 'both'">
-          <div class="card-header bg-light">
-            <h6 class="mb-0"><i class="bi bi-pencil-square"></i> 描述症状</h6>
-          </div>
-          <div class="card-body">
-            <textarea
-              v-model="textInput"
-              class="form-control form-control-lg"
-              rows="5"
-              placeholder="请详细描述番茄的症状，例如：&#10;- 叶子出现黄色斑点，边缘枯萎&#10;- 果实表面有腐烂迹象&#10;- 茎秆出现变色..."
-            ></textarea>
-            <div class="mt-2">
-              <small class="text-muted">常见症状：</small>
-              <span
-                v-for="symptom in commonSymptoms"
-                :key="symptom"
-                class="badge bg-light text-dark me-1 mb-1 cursor-pointer symptom-tag"
-                @click="addSymptom(symptom)"
-              >
-                {{ symptom }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 位置信息 -->
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-light">
-            <h6 class="mb-0"><i class="bi bi-geo-alt"></i> 位置信息</h6>
-          </div>
-          <div class="card-body">
-            <div class="input-group">
-              <input
-                v-model="locationInput"
-                type="text"
-                class="form-control"
-                placeholder="输入位置或点击自动定位"
-              >
-              <button
-                class="btn btn-outline-success"
-                type="button"
-                @click="getCurrentLocation"
-                :disabled="locating"
-              >
-                <i class="bi bi-geo-alt-fill"></i>
-                {{ locating ? '定位中...' : '自动定位' }}
-              </button>
-            </div>
-            <small class="text-muted">位置信息用于天气查询和土壤分析</small>
-          </div>
-        </div>
-
-        <!-- 提交按钮 -->
-        <div class="d-grid mb-4">
-          <button
-            class="btn btn-success btn-lg py-3"
-            @click="submitDiagnosis"
-            :disabled="loading || !canSubmit"
-          >
-            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-            <i v-else class="bi bi-search-heart me-2"></i>
-            {{ loading ? '正在诊断...' : '开始诊断' }}
-          </button>
+        <div class="status-badge ready">
+          ✓ 知识库就绪
         </div>
       </div>
+    </header>
 
-      <!-- 右侧：天气信息 -->
-      <div class="col-lg-5">
-        <!-- 天气卡片 -->
-        <div class="card shadow-sm mb-4 weather-card" v-if="weatherData && weatherData.success">
-          <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="bi bi-cloud-sun"></i> 当地天气</h5>
+    <div class="main">
+      <!-- 左侧面板 -->
+      <aside class="panel">
+        <!-- 位置信息 -->
+        <div class="card">
+          <h3 class="card-title">📍 我的位置</h3>
+          <div class="location-box" v-if="latitude">
+            <span>{{ latitude.toFixed(4) }}, {{ longitude.toFixed(4) }}</span>
           </div>
-          <div class="card-body">
-            <!-- 今日天气 -->
-            <div class="text-center mb-3">
-              <i :class="getWeatherIcon(weatherData.today?.skycon)" class="display-3"></i>
-              <h3 class="mt-2 mb-0">{{ weatherData.today?.description }}</h3>
-              <p class="text-muted">{{ weatherData.today?.date }}</p>
-            </div>
+          <button class="btn btn-green" @click="getLocation" :disabled="locating">
+            {{ locating ? '定位中...' : '获取当前位置' }}
+          </button>
+          <input v-model="manualLocation" class="input" placeholder="或手动输入地区名称">
+        </div>
 
-            <div class="row text-center mb-3">
-              <div class="col-4">
-                <div class="p-2 border rounded">
-                  <div class="fs-3 fw-bold text-danger">{{ weatherData.today?.temperature?.max?.toFixed(0) }}°C</div>
-                  <small class="text-muted">最高温</small>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="p-2 border rounded">
-                  <div class="fs-3 fw-bold text-primary">{{ weatherData.today?.temperature?.min?.toFixed(0) }}°C</div>
-                  <small class="text-muted">最低温</small>
-                </div>
-              </div>
-              <div class="col-4">
-                <div class="p-2 border rounded">
-                  <div class="fs-3 fw-bold text-info">{{ weatherData.today?.humidity?.avg?.toFixed(0) }}%</div>
-                  <small class="text-muted">湿度</small>
-                </div>
+        <!-- 天气信息 -->
+        <div class="card" v-if="weather">
+          <h3 class="card-title">🌤️ 今日天气</h3>
+          <div class="weather-box">
+            <div class="weather-main">
+              <span class="weather-icon">{{ getWeatherEmoji(weather.today?.skycon) }}</span>
+              <div>
+                <span class="weather-temp">{{ weather.today?.temperature?.avg?.toFixed(0) }}°C</span>
+                <span class="weather-desc">{{ weather.today?.description }}</span>
               </div>
             </div>
-
-            <!-- 农事建议 -->
-            <div class="alert alert-success mb-3" v-if="farmingAdvice">
-              <i class="bi bi-lightbulb"></i> {{ farmingAdvice }}
+            <div class="weather-detail">
+              <span>最高 {{ weather.today?.temperature?.max?.toFixed(0) }}°C</span>
+              <span>最低 {{ weather.today?.temperature?.min?.toFixed(0) }}°C</span>
+              <span>湿度 {{ (weather.today?.humidity?.avg * 100)?.toFixed(0) }}%</span>
             </div>
+          </div>
+          <div class="weather-tip" v-if="weatherTip">{{ weatherTip }}</div>
+        </div>
 
-            <!-- 未来预报 -->
-            <h6 class="text-muted mb-2">未来预报</h6>
-            <div class="row g-2">
-              <div v-for="(day, index) in weatherData.forecast" :key="index" class="col text-center">
-                <div class="p-2 border rounded bg-light">
-                  <div class="fw-bold small">{{ index === 0 ? '今天' : index === 1 ? '明天' : '后天' }}</div>
-                  <i :class="getWeatherIcon(day.skycon)" class="fs-5"></i>
-                  <div class="small">{{ day.description }}</div>
-                  <div class="small">
-                    <span class="text-danger">{{ day.temperature?.max?.toFixed(0) }}°</span>
-                    <span class="text-muted">/</span>
-                    <span class="text-primary">{{ day.temperature?.min?.toFixed(0) }}°</span>
-                  </div>
-                </div>
+        <!-- 土壤选择 -->
+        <div class="card">
+          <h3 class="card-title">🌱 当地土质</h3>
+          <div class="soil-detected" v-if="detectedSoil">
+            <span class="soil-tag">{{ detectedSoil }}</span>
+          </div>
+          <select v-model="selectedSoil" class="select" @change="onSoilChange">
+            <option value="">选择当地土质...</option>
+            <option v-for="s in soilOptions" :key="s.name" :value="s.name">
+              {{ s.name }} (pH {{ s.ph }})
+            </option>
+          </select>
+          <p class="soil-desc" v-if="soilDesc">{{ soilDesc }}</p>
+        </div>
+      </aside>
+
+      <!-- 聊天区 -->
+      <div class="chat">
+        <!-- 欢迎 -->
+        <div class="welcome" v-if="messages.length === 0">
+          <div class="welcome-icon">🍅</div>
+          <h2>你好，我是番茄卫士</h2>
+          <p>上传图片或描述症状，帮你诊断番茄病虫害</p>
+          <div class="quick-questions">
+            <button class="quick-btn" @click="quickAsk('叶子发黄了')">叶子发黄</button>
+            <button class="quick-btn" @click="quickAsk('果实烂了')">果实腐烂</button>
+            <button class="quick-btn" @click="quickAsk('叶子上有小虫子')">有虫子</button>
+            <button class="quick-btn" @click="quickAsk('叶子长斑了')">叶子长斑</button>
+          </div>
+        </div>
+
+        <!-- 消息列表 -->
+        <div class="messages" ref="msgList">
+          <div v-for="(msg, i) in messages" :key="i" :class="['msg', msg.role]">
+            <div class="msg-avatar">{{ msg.role === 'user' ? '👨‍🌾' : '🌱' }}</div>
+            <div class="msg-body">
+              <div class="msg-bubble" v-html="renderMsg(msg.content)"></div>
+              <img v-if="msg.image" :src="msg.image" class="msg-image">
+              <span class="msg-time">{{ msg.time }}</span>
+            </div>
+          </div>
+
+          <!-- 加载 -->
+          <div class="msg assistant" v-if="loading">
+            <div class="msg-avatar">🌱</div>
+            <div class="msg-body">
+              <div class="msg-bubble loading">
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 定位提示 -->
-        <div class="card shadow-sm mb-4" v-if="!weatherData">
-          <div class="card-body text-center py-5">
-            <i class="bi bi-geo-alt fs-1 text-muted"></i>
-            <h5 class="mt-3 text-muted">请先定位获取天气</h5>
-            <p class="text-muted">点击左侧"自动定位"按钮</p>
+        <!-- 输入区 -->
+        <div class="input-area">
+          <div class="preview-box" v-if="imagePreview">
+            <img :src="imagePreview" class="preview-img">
+            <button class="preview-close" @click="clearImage">✕</button>
           </div>
-        </div>
-
-        <!-- 使用提示 -->
-        <div class="card shadow-sm">
-          <div class="card-header bg-light">
-            <h6 class="mb-0"><i class="bi bi-info-circle"></i> 使用提示</h6>
-          </div>
-          <div class="card-body">
-            <div class="d-flex mb-3">
-              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-              <div>
-                <strong>清晰拍摄</strong>
-                <p class="mb-0 small text-muted">请在光线充足的环境下拍摄病害部位</p>
-              </div>
-            </div>
-            <div class="d-flex mb-3">
-              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-              <div>
-                <strong>详细描述</strong>
-                <p class="mb-0 small text-muted">描述症状出现的时间、部位和变化过程</p>
-              </div>
-            </div>
-            <div class="d-flex mb-3">
-              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-              <div>
-                <strong>准确定位</strong>
-                <p class="mb-0 small text-muted">提供位置信息可获得更精准的天气和土壤分析</p>
-              </div>
-            </div>
-            <div class="d-flex">
-              <i class="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-              <div>
-                <strong>综合诊断</strong>
-                <p class="mb-0 small text-muted">图片+文字描述可获得更准确的诊断结果</p>
-              </div>
-            </div>
+          <div class="input-row">
+            <label class="btn-icon" title="上传图片">
+              📷
+              <input type="file" accept="image/*" @change="onFileSelect" class="hidden">
+            </label>
+            <textarea
+              v-model="inputText"
+              class="textarea"
+              placeholder="描述番茄症状，如：叶子发黄、长斑、有虫..."
+              @keydown.enter.exact.prevent="send"
+              rows="1"
+            ></textarea>
+            <button class="btn btn-send" @click="send" :disabled="loading || (!inputText.trim() && !imageFile)">
+              发送
+            </button>
           </div>
         </div>
       </div>
@@ -273,325 +140,725 @@
 </template>
 
 <script>
-/**
- * 首页组件
- * 提供图片上传、文字输入和天气显示功能
- */
 import axios from 'axios'
 
 export default {
   name: 'HomeView',
   data() {
     return {
-      diagnosisMode: 'both', // image, text, both
-      imageFile: null,
-      imagePreview: null,
-      textInput: '',
-      locationInput: '',
+      systemReady: false,
       latitude: null,
       longitude: null,
+      manualLocation: '',
       locating: false,
-      loading: false,
-      weatherData: null,
-      commonSymptoms: ['黄叶', '枯萎', '斑点', '腐烂', '卷叶', '虫蛀', '变色', '脱落']
+      weather: null,
+      selectedSoil: '',
+      detectedSoil: '',
+      soilDesc: '',
+      soilOptions: [
+        { name: '潮土', ph: '7.7~9.0', region: '豫东豫北', desc: '弱碱性，适合大多数作物，保水保肥好' },
+        { name: '褐土', ph: '7.0~8.5', region: '豫西豫中', desc: '中弱碱性，肥力较高，适合小麦玉米' },
+        { name: '砂姜黑土', ph: '5.0~8.1', region: '豫南', desc: '粘重，需增施有机肥改良' },
+        { name: '黄棕壤', ph: '5.5~7.5', region: '豫西南山区', desc: '微酸中性，适合果树种植' },
+        { name: '黄褐土', ph: '6.5~7.5', region: '南阳驻马店', desc: '质地粘重，需配合施肥' },
+        { name: '水稻土', ph: '5.0~8.0', region: '信阳', desc: '有机质丰富，适合水旱轮作' },
+        { name: '紫色土', ph: '7.0~7.9', region: '西峡内乡', desc: '中性，注意水土保持' }
+      ],
+      messages: [],
+      inputText: '',
+      imageFile: null,
+      imagePreview: null,
+      loading: false
     }
   },
   computed: {
-    /**
-     * 判断是否可以提交
-     */
-    canSubmit() {
-      if (this.diagnosisMode === 'image') return !!this.imageFile
-      if (this.diagnosisMode === 'text') return !!this.textInput.trim()
-      if (this.diagnosisMode === 'both') return !!this.imageFile || !!this.textInput.trim()
-      return false
-    },
-
-    /**
-     * 根据天气生成农事建议
-     */
-    farmingAdvice() {
-      if (!this.weatherData || !this.weatherData.today) return ''
-
-      const today = this.weatherData.today
-      const temp = today.temperature?.avg || 0
-      const humidity = today.humidity?.avg || 0
-      const skycon = today.skycon || ''
-
-      if (skycon.includes('RAIN')) {
-        return '今日有雨，不宜施药，注意排水防涝'
-      }
-      if (temp > 35) {
-        return '高温天气，注意遮阳降温，避免中午浇水'
-      }
-      if (temp < 10) {
-        return '温度较低，注意防寒保暖'
-      }
-      if (humidity > 80) {
-        return '湿度较高，注意通风，预防病害发生'
-      }
-      return '天气适宜，适合进行田间管理'
+    weatherTip() {
+      if (!this.weather?.today) return ''
+      const t = this.weather.today
+      const skycon = t.skycon || ''
+      if (skycon.includes('RAIN')) return '今天有雨，不宜施药，注意排水'
+      if (t.temperature?.avg > 35) return '高温天气，注意遮阳降温'
+      if (t.humidity?.avg > 0.8) return '湿度较高，注意通风防病'
+      return '天气适合田间管理'
     }
   },
+  created() {
+    // 直接标记为就绪，避免加载中显示
+    this.systemReady = true
+  },
   methods: {
-    /**
-     * 触发文件选择
-     */
-    triggerFileInput() {
-      this.$refs.fileInput.click()
-    },
-
-    /**
-     * 处理文件选择
-     */
-    handleFileSelect(event) {
-      const file = event.target.files[0]
-      if (file) this.setImage(file)
-    },
-
-    /**
-     * 处理拖拽上传
-     */
-    handleDrop(event) {
-      const file = event.dataTransfer.files[0]
-      if (file && file.type.startsWith('image/')) this.setImage(file)
-    },
-
-    /**
-     * 设置图片文件
-     */
-    setImage(file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert('图片大小不能超过 10MB')
-        return
+    // 定位
+    async getLocation() {
+      this.locating = true
+      try {
+        if (!navigator.geolocation) {
+          alert('浏览器不支持定位')
+          this.locating = false
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            this.latitude = pos.coords.latitude
+            this.longitude = pos.coords.longitude
+            this.locating = false
+            await this.loadWeather()
+            this.guessSoil()
+          },
+          () => {
+            alert('定位失败，请手动输入')
+            this.locating = false
+          },
+          { timeout: 10000 }
+        )
+      } catch (e) {
+        this.locating = false
       }
+    },
+
+    async loadWeather() {
+      if (!this.latitude) return
+      try {
+        const res = await axios.get(`/api/weather/${this.latitude}/${this.longitude}`)
+        if (res.data.success) this.weather = res.data
+      } catch (e) {
+        console.error('天气加载失败', e)
+      }
+    },
+
+    guessSoil() {
+      if (!this.latitude) return
+      // 简单推断
+      if (this.latitude > 35.5) {
+        this.selectedSoil = '潮土'
+        this.detectedSoil = '潮土'
+      } else if (this.latitude < 33) {
+        this.selectedSoil = '黄棕壤'
+        this.detectedSoil = '黄棕壤'
+      } else {
+        this.selectedSoil = '褐土'
+        this.detectedSoil = '褐土'
+      }
+      this.soilDesc = this.soilOptions.find(s => s.name === this.selectedSoil)?.desc || ''
+    },
+
+    onSoilChange() {
+      this.detectedSoil = this.selectedSoil
+      this.soilDesc = this.soilOptions.find(s => s.name === this.selectedSoil)?.desc || ''
+    },
+
+    // 图片
+    onFileSelect(e) {
+      const file = e.target.files[0]
+      if (!file) return
       this.imageFile = file
       this.imagePreview = URL.createObjectURL(file)
     },
 
-    /**
-     * 清除图片
-     */
     clearImage() {
       this.imageFile = null
       if (this.imagePreview) URL.revokeObjectURL(this.imagePreview)
       this.imagePreview = null
     },
 
-    /**
-     * 添加常见症状到输入框
-     */
-    addSymptom(symptom) {
-      if (this.textInput) {
-        this.textInput += '，' + symptom
-      } else {
-        this.textInput = symptom
-      }
+    // 聊天
+    quickAsk(text) {
+      this.inputText = text
+      this.send()
     },
 
-    /**
-     * 获取当前位置
-     */
-    async getCurrentLocation() {
-      this.locating = true
+    async send() {
+      const text = this.inputText.trim()
+      if (!text && !this.imageFile) return
 
-      try {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            async (position) => {
-              this.latitude = position.coords.latitude
-              this.longitude = position.coords.longitude
-              this.locationInput = `${this.latitude.toFixed(4)}, ${this.longitude.toFixed(4)}`
+      // 添加用户消息
+      this.messages.push({
+        role: 'user',
+        content: text || '请看这张图片',
+        image: this.imagePreview,
+        time: this.now()
+      })
 
-              // 获取天气数据
-              await this.loadWeather()
+      // 保存并清空
+      const img = this.imageFile
+      const preview = this.imagePreview
+      this.inputText = ''
+      this.imageFile = null
+      this.imagePreview = null
+      this.$nextTick(() => this.scrollBottom())
 
-              this.locating = false
-            },
-            (error) => {
-              console.error('定位失败:', error)
-              alert('定位失败，请手动输入位置')
-              this.locating = false
-            },
-            {
-              timeout: 10000,
-              maximumAge: 300000
-            }
-          )
-        } else {
-          alert('浏览器不支持定位功能，请手动输入位置')
-          this.locating = false
-        }
-      } catch (error) {
-        console.error('定位错误:', error)
-        this.locating = false
-      }
-    },
-
-    /**
-     * 加载天气数据
-     */
-    async loadWeather() {
-      if (!this.latitude || !this.longitude) {
-        console.log('缺少经纬度，无法加载天气')
-        return
-      }
-
-      console.log('正在加载天气数据:', this.latitude, this.longitude)
-
-      try {
-        const url = `/api/weather/${this.latitude}/${this.longitude}`
-        console.log('请求 URL:', url)
-
-        const response = await axios.get(url)
-        console.log('天气 API 响应:', response.data)
-
-        if (response.data && response.data.success) {
-          this.weatherData = response.data
-          console.log('天气数据加载成功:', this.weatherData)
-        } else {
-          console.error('天气数据返回失败:', response.data)
-        }
-      } catch (error) {
-        console.error('加载天气失败:', error)
-        if (error.response) {
-          console.error('错误响应:', error.response.data)
-        }
-      }
-    },
-
-    /**
-     * 获取天气图标
-     */
-    getWeatherIcon(skycon) {
-      const icons = {
-        'CLEAR_DAY': 'bi bi-sun text-warning',
-        'CLEAR_NIGHT': 'bi bi-moon text-primary',
-        'PARTLY_CLOUDY_DAY': 'bi bi-cloud-sun text-info',
-        'PARTLY_CLOUDY_NIGHT': 'bi bi-cloud-moon text-primary',
-        'CLOUDY': 'bi bi-cloud text-secondary',
-        'LIGHT_HAZE': 'bi bi-cloud-haze text-secondary',
-        'MODERATE_HAZE': 'bi bi-cloud-haze text-secondary',
-        'HEAVY_HAZE': 'bi bi-cloud-haze text-dark',
-        'LIGHT_RAIN': 'bi bi-cloud-drizzle text-info',
-        'MODERATE_RAIN': 'bi bi-cloud-rain text-primary',
-        'HEAVY_RAIN': 'bi bi-cloud-rain-heavy text-primary',
-        'STORM_RAIN': 'bi bi-cloud-lightning-rain text-dark',
-        'FOG': 'bi bi-cloud-fog text-secondary',
-        'LIGHT_SNOW': 'bi bi-cloud-snow text-info',
-        'MODERATE_SNOW': 'bi bi-cloud-snow text-primary',
-        'HEAVY_SNOW': 'bi bi-cloud-snow text-dark',
-        'STORM_SNOW': 'bi bi-cloud-snow text-dark',
-        'WIND': 'bi bi-wind text-info'
-      }
-      return icons[skycon] || 'bi bi-cloud text-secondary'
-    },
-
-    /**
-     * 提交诊断请求
-     */
-    async submitDiagnosis() {
-      if (!this.canSubmit) {
-        alert('请上传图片或输入症状描述')
-        return
-      }
-
+      // 请求
       this.loading = true
-
       try {
-        const formData = new FormData()
-
-        if (this.imageFile) {
-          formData.append('file', this.imageFile)
-        }
-
-        const requestData = {
-          text_input: this.textInput || null,
+        const fd = new FormData()
+        if (img) fd.append('file', img)
+        fd.append('request', JSON.stringify({
+          text_input: text || null,
           latitude: this.latitude,
           longitude: this.longitude,
-          location: this.locationInput || null
-        }
+          location: this.manualLocation || null,
+          soil_type: this.selectedSoil || null,
+          chat_history: this.messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+        }))
 
-        formData.append('request', JSON.stringify(requestData))
-
-        const response = await axios.post('/api/diagnosis', formData, {
+        const res = await axios.post('/api/diagnosis', fd, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
 
-        if (response.data.success) {
-          this.$router.push({
-            name: 'Result',
-            params: { id: response.data.diagnosis_id }
-          })
+        if (res.data.success) {
+          let parts = []
+          const d = res.data.disease_result
+          if (d) {
+            // 显示多种可能的病症及概率
+            if (d.candidates && d.candidates.length > 0) {
+              parts.push('🔍 **可能的病症：**')
+              d.candidates.forEach(c => {
+                const filled = Math.round(c.probability / 10)
+                const bar = '█'.repeat(filled) + '░'.repeat(10 - filled)
+                parts.push(`${bar} ${c.probability}% **${c.name}**`)
+              })
+              parts.push('')
+            }
+
+            const icon = d.is_healthy ? '✅' : '⚠️'
+            parts.push(`${icon} **最可能：${d.disease_name}**`)
+
+            if (d.symptoms?.length) {
+              parts.push(`症状：${d.symptoms.join('、')}`)
+            }
+            parts.push('')
+          }
+
+          if (res.data.final_advice) {
+            parts.push('---')
+            parts.push(res.data.final_advice)
+          }
+
+          this.messages.push({ role: 'assistant', content: parts.join('\n'), time: this.now() })
         } else {
-          alert('诊断失败：' + (response.data.error || '未知错误'))
+          this.messages.push({ role: 'assistant', content: '诊断失败，请重试', time: this.now() })
         }
-      } catch (error) {
-        console.error('诊断请求失败:', error)
-        alert('诊断请求失败，请稍后重试')
+      } catch (e) {
+        this.messages.push({ role: 'assistant', content: '请求失败，请稍后重试', time: this.now() })
       } finally {
         this.loading = false
+        this.$nextTick(() => this.scrollBottom())
       }
+    },
+
+    renderMsg(text) {
+      if (!text) return ''
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>')
+    },
+
+    getWeatherEmoji(s) {
+      const m = { 'CLEAR_DAY': '☀️', 'PARTLY_CLOUDY_DAY': '⛅', 'CLOUDY': '☁️', 'LIGHT_RAIN': '🌦️', 'MODERATE_RAIN': '🌧️', 'HEAVY_RAIN': '⛈️' }
+      return m[s] || '🌤️'
+    },
+
+    now() {
+      const d = new Date()
+      return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
+    },
+
+    scrollBottom() {
+      const el = this.$refs.msgList
+      if (el) el.scrollTop = el.scrollHeight
     }
-  },
-  beforeUnmount() {
-    if (this.imagePreview) URL.revokeObjectURL(this.imagePreview)
   }
 }
 </script>
 
 <style scoped>
-.hero-section {
-  padding: 2rem 0;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e9 100%);
+.app {
+  min-height: 100vh;
+  background: #f5f7f0;
+}
+
+/* 头部 */
+.header {
+  background: #fff;
+  border-bottom: 2px solid #8bc34a;
+  padding: 12px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  font-size: 32px;
+}
+
+.brand h1 {
+  font-size: 20px;
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+.brand p {
+  font-size: 12px;
+  color: #888;
+}
+
+.status-badge {
+  padding: 6px 14px;
+  background: #eee;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #999;
+}
+
+.status-badge.ready {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* 主布局 */
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  height: calc(100vh - 70px);
+}
+
+/* 左侧面板 */
+.panel {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.card {
+  background: #fff;
   border-radius: 12px;
-  margin-bottom: 1rem;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
-.diagnosis-option {
-  transition: all 0.3s ease;
+.card-title {
+  font-size: 15px;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+.location-box {
+  background: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
 }
 
-.diagnosis-option:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.btn-green {
+  background: #4caf50;
+  color: #fff;
+  width: 100%;
 }
 
-.upload-area {
+.btn-green:hover {
+  background: #388e3c;
+}
+
+.btn-green:disabled {
+  background: #a5d6a7;
+  cursor: not-allowed;
+}
+
+.input, .select, .textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: #333;
+  margin-top: 10px;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.input::placeholder, .textarea::placeholder {
+  color: #aaa;
+}
+
+/* 天气 */
+.weather-box {
+  margin-bottom: 10px;
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.weather-icon {
+  font-size: 36px;
+}
+
+.weather-temp {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ff9800;
+  display: block;
+}
+
+.weather-desc {
+  font-size: 13px;
+  color: #888;
+}
+
+.weather-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.weather-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #fff3e0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #e65100;
+}
+
+/* 土壤 */
+.soil-detected {
+  margin-bottom: 10px;
+}
+
+.soil-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.soil-desc {
+  font-size: 12px;
+  color: #888;
+  margin-top: 8px;
+  padding: 8px;
+  background: #f9fbe7;
+  border-radius: 6px;
+}
+
+/* 聊天区 */
+.chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+/* 欢迎 */
+.welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+}
+
+.welcome-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.welcome h2 {
+  font-size: 24px;
+  color: #2e7d32;
+  margin-bottom: 8px;
+}
+
+.welcome p {
+  color: #888;
+  margin-bottom: 24px;
+}
+
+.quick-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.quick-btn {
+  padding: 8px 16px;
+  background: #f1f8e9;
+  border: 1px solid #c5e1a5;
+  border-radius: 20px;
+  color: #558b2f;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: #fafafa;
-  min-height: 150px;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.quick-btn:hover {
+  background: #dcedc8;
+}
+
+/* 消息 */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.msg {
+  display: flex;
+  gap: 10px;
+  max-width: 80%;
+}
+
+.msg.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.msg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f8e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.msg.user .msg-avatar {
+  background: #fff3e0;
+}
+
+.msg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.msg.user .msg-body {
+  align-items: flex-end;
+}
+
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.msg.assistant .msg-bubble {
+  background: #f5f5f5;
+  border-top-left-radius: 4px;
+}
+
+.msg.user .msg-bubble {
+  background: #4caf50;
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+
+.msg-bubble strong {
+  color: #e65100;
+}
+
+.msg.user .msg-bubble strong {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.msg-image {
+  max-width: 160px;
+  border-radius: 8px;
+}
+
+.msg-time {
+  font-size: 11px;
+  color: #bbb;
+}
+
+/* 加载动画 */
+.msg-bubble.loading {
+  display: flex;
+  gap: 6px;
+  padding: 14px 18px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #aaa;
+  border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-8px); }
+}
+
+/* 输入区 */
+.input-area {
+  padding: 12px 16px;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+}
+
+.preview-box {
+  display: inline-block;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.preview-img {
+  max-width: 80px;
+  border-radius: 8px;
+}
+
+.preview-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  background: #f44336;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.upload-area:hover {
-  border-color: #198754 !important;
-  background-color: #f0fff0;
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
 }
 
-.upload-area.border-success {
-  background-color: #f0fff0;
-}
-
-.bg-light-green {
-  background-color: #f0fff0 !important;
-}
-
-.weather-card {
-  position: sticky;
-  top: 20px;
-}
-
-.cursor-pointer {
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
-.symptom-tag:hover {
-  background-color: #198754 !important;
-  color: white !important;
+.btn-icon:hover {
+  background: #e8f5e9;
+}
+
+.hidden {
+  display: none;
+}
+
+.textarea {
+  flex: 1;
+  resize: none;
+  min-height: 40px;
+  max-height: 100px;
+  margin-top: 0;
+}
+
+.btn-send {
+  background: #4caf50;
+  color: #fff;
+  padding: 0 20px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.btn-send:hover {
+  background: #388e3c;
+}
+
+.btn-send:disabled {
+  background: #a5d6a7;
+  cursor: not-allowed;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .panel {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 10px;
+  }
+
+  .card {
+    min-width: 250px;
+  }
+
+  .chat {
+    min-height: 500px;
+  }
 }
 </style>

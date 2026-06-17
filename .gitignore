@@ -21,17 +21,27 @@ frontend/dist/
 *.swp
 *.swo
 
-# Database
+# 数据库
 *.db
 *.sqlite
 
-# Uploads
+# 上传文件
 uploads/*
 !uploads/.gitkeep
+
+# RAG 向量数据库（需要用户自己构建）
+rag/vector_db/
+
+# 向量模型（太大，需要单独下载）
+# 向量模型目录不在 project 内，所以不需要忽略
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
+# 日志
 *.log
+
+# 临时文件
+*.tmp
+*.bak

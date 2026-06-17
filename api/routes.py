@@ -1,8 +1,8 @@
 """
 文件名: routes.py
-功能描述: FastAPI 路由定义，处理所有 API 请求
+功能描述: FastAPI 路由定义，处理所有 API 请求（增强版）
 作者: ZT
-日期: 2026/6/16
+日期: 2026/6/17
 """
 
 from typing import Optional, List
@@ -89,39 +89,46 @@ async def health_check():
 
 @router.post("/diagnosis", response_model=DiagnosisResponse)
 async def create_diagnosis(
-    request: DiagnosisRequest,
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    request: str = Form(...)
 ):
     """
-    创建诊断请求
+    创建诊断请求（支持 FormData 格式）
 
     Args:
-        request: 诊断请求
         file: 上传的图片文件（可选）
+        request: JSON 格式的请求参数字符串
 
     Returns:
         诊断结果
     """
     try:
+        # 解析 JSON 字符串
+        try:
+            request_data = json.loads(request)
+            diagnosis_request = DiagnosisRequest(**request_data)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"请求参数解析失败: {str(e)}")
+
         # 获取或创建默认用户
         user = db_service.get_or_create_default_user()
 
         # 处理位置信息
         location_result = await location_service.resolve_location(
-            browser_location=request.browser_location,
-            manual_location=request.location,
+            browser_location=diagnosis_request.browser_location,
+            manual_location=diagnosis_request.location,
             client_ip=None
         )
 
-        latitude = location_result.get("latitude", request.latitude or 0)
-        longitude = location_result.get("longitude", request.longitude or 0)
-        location = location_result.get("location", request.location or "")
+        latitude = location_result.get("latitude", diagnosis_request.latitude or 0)
+        longitude = location_result.get("longitude", diagnosis_request.longitude or 0)
+        location = location_result.get("location", diagnosis_request.location or "")
 
         # 创建诊断记录
         diagnosis_record = db_service.create_diagnosis_record(
             user_id=user.id,
             image_path=None,
-            text_input=request.text_input,
+            text_input=diagnosis_request.text_input,
             location=location,
             latitude=latitude,
             longitude=longitude
@@ -146,15 +153,23 @@ async def create_diagnosis(
 
         # 处理文本
         text_analysis = None
-        if request.text_input:
-            text_result = await text_processor.process_text(request.text_input)
+        if diagnosis_request.text_input:
+            text_result = await text_processor.process_text(diagnosis_request.text_input)
             if text_result.get("success"):
                 text_analysis = text_result
 
-        # 病虫害识别
+        # 病虫害识别（支持图片和文本）
+        # 结合历史对话进行更精确的识别
+        combined_text = diagnosis_request.text_input or ""
+        if diagnosis_request.chat_history:
+            # 提取历史对话中的关键信息
+            history_context = " ".join([msg.get("content", "") for msg in diagnosis_request.chat_history[-6:]])
+            combined_text = f"{history_context} {combined_text}"
+
         disease_result = await disease_detector.detect(
             image_path or "",
-            image_analysis.get("features") if image_analysis else None
+            image_analysis.get("features") if image_analysis else None,
+            combined_text
         )
 
         # 获取天气数据
@@ -168,7 +183,7 @@ async def create_diagnosis(
             "user_id": user.id,
             "image_analysis": image_analysis,
             "text_analysis": text_analysis,
-            "text_input": request.text_input,
+            "text_input": diagnosis_request.text_input,
             "disease_result": disease_result,
             "latitude": latitude,
             "longitude": longitude,
@@ -210,7 +225,16 @@ async def create_diagnosis(
             "safety_advice": safety_result
         })
 
-        # 生成最终建议
+        # 获取 RAG 知识库上下文和 disease_agent 分析结果
+        rag_context = ""
+        disease_analysis = agent_results.get("disease_agent", {})
+        if disease_analysis.get("rag_references"):
+            rag_context = disease_analysis["rag_references"]
+
+        # 获取 disease_agent 的分析结果（已包含 LLM 结合 RAG 的分析）
+        disease_agent_analysis = disease_analysis.get("analysis", "")
+
+        # 生成最终建议（支持降级到 RAG 模式）
         final_advice = await llm_service.generate_final_advice(
             disease_result=disease_result,
             weather_analysis=weather_result.get("impact_analysis", {}),
@@ -218,7 +242,9 @@ async def create_diagnosis(
             irrigation_advice=irrigation_result.get("advice", ""),
             safety_advice=safety_result.get("medication_advice", ""),
             calendar_advice=calendar_result.get("farming_calendar", {}),
-            user_memory=memory_result.get("personalized_advice", "")
+            user_memory=memory_result.get("personalized_advice", ""),
+            rag_context=rag_context,
+            disease_agent_analysis=disease_agent_analysis
         )
 
         # 更新诊断记录
@@ -268,7 +294,7 @@ async def create_diagnosis(
             calendar_advice=AgentResult(
                 success=calendar_result.get("success", False),
                 analysis=calendar_result.get("farming_calendar", {}).get("arrangement"),
-                advice=calendar_result.get("farming_reminders")
+                advice=str(calendar_result.get("farming_reminders", "")) if calendar_result.get("farming_reminders") else None
             ),
             memory_analysis=AgentResult(
                 success=memory_result.get("success", False),
@@ -278,7 +304,11 @@ async def create_diagnosis(
             final_advice=final_advice
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -326,8 +356,10 @@ async def chat_with_ai(request: ChatRequest):
             "final_advice": diagnosis_record.final_advice or ""
         }
 
-        # 构建提示词
-        system_prompt = """你是一个资深的农业专家助手。用户之前进行了番茄病虫害诊断，现在想进一步了解相关信息。
+        # 检查 LLM 是否可用
+        if llm_service.is_available:
+            # 构建提示词
+            system_prompt = """你是一个资深的农业专家助手。用户之前进行了番茄病虫害诊断，现在想进一步了解相关信息。
 请根据诊断结果和用户的问题，提供专业、详细、实用的回答。
 
 回答要求：
@@ -336,8 +368,7 @@ async def chat_with_ai(request: ChatRequest):
 3. 提供具体可操作的建议
 4. 如果涉及用药，提醒安全注意事项"""
 
-        # 构建用户消息
-        user_prompt = f"""诊断背景：
+            user_prompt = f"""诊断背景：
 - 病害：{context['disease_result'].get('disease_name', '未知')}
 - 诊断建议：{context['final_advice'][:500]}...
 
@@ -345,13 +376,22 @@ async def chat_with_ai(request: ChatRequest):
 
 请回答用户的问题："""
 
-        # 调用 LLM
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
 
-        response = await llm_service.chat(messages)
+            response = await llm_service.chat(messages)
+        else:
+            # LLM 不可用，使用 RAG 检索
+            rag_context = ""
+            if disease_agent.rag_system:
+                rag_context = disease_agent.rag_system.get_context(user_message, top_k=3)
+
+            if rag_context:
+                response = f"【基于知识库的回答】\n\n关于您的问题：{user_message}\n\n以下是相关参考信息：\n\n{rag_context}\n\n💡 提示：如需更详细的个性化建议，请确保大模型服务可用。"
+            else:
+                response = f"抱歉，暂时无法回答您的问题。大模型服务不可用，且知识库中未找到相关信息。\n\n您的问题：{user_message}"
 
         return ChatResponse(
             success=True,
@@ -487,6 +527,7 @@ async def get_diagnosis_detail(diagnosis_id: int):
             "success": True,
             "diagnosis_id": diagnosis_record.id,
             "disease_result": diagnosis_record.disease_result,
+            "weather_data": diagnosis_record.weather_analysis.get("weather_data", {}) if diagnosis_record.weather_analysis else {},
             "weather_analysis": diagnosis_record.weather_analysis,
             "soil_analysis": diagnosis_record.soil_analysis,
             "irrigation_advice": diagnosis_record.irrigation_advice,
@@ -550,8 +591,16 @@ async def get_model_status():
     Returns:
         模型加载状态
     """
+    # 检查 RAG 系统状态
+    rag_status = "not_loaded"
+    if disease_agent and disease_agent.rag_system:
+        rag_status = "loaded" if disease_agent.rag_system.index else "not_loaded"
+
     return {
         "success": True,
         "model_loaded": disease_detector.is_model_loaded(),
-        "supported_diseases": len(disease_detector.get_supported_diseases())
+        "supported_diseases": len(disease_detector.get_supported_diseases()),
+        "llm_available": llm_service.is_available,
+        "rag_status": rag_status,
+        "mode": "full" if llm_service.is_available else "rag_only"
     }
