@@ -89,9 +89,21 @@ async def health_check():
 
 @router.post("/diagnosis", response_model=DiagnosisResponse)
 async def create_diagnosis(
-    request: DiagnosisRequest,
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    text_input: Optional[str] = Form(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
+    location: Optional[str] = Form(None),
+    browser_location: Optional[str] = Form(None),
 ):
+    # 构造 DiagnosisRequest
+    request = DiagnosisRequest(
+        text_input=text_input,
+        latitude=latitude,
+        longitude=longitude,
+        location=location,
+        browser_location=json.loads(browser_location) if browser_location else None,
+    )
     """
     创建诊断请求
 
@@ -279,6 +291,8 @@ async def create_diagnosis(
         )
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -505,14 +505,10 @@ export default {
           formData.append('file', this.imageFile)
         }
 
-        const requestData = {
-          text_input: this.textInput || null,
-          latitude: this.latitude,
-          longitude: this.longitude,
-          location: this.locationInput || null
-        }
-
-        formData.append('request', JSON.stringify(requestData))
+        formData.append('text_input', this.textInput || '')
+        if (this.latitude) formData.append('latitude', this.latitude)
+        if (this.longitude) formData.append('longitude', this.longitude)
+        if (this.locationInput) formData.append('location', this.locationInput)
 
         const response = await axios.post('/api/diagnosis', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }

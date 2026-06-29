@@ -38,6 +38,7 @@ models/*_plant/
 models/swin_tiny/
 models/clip/
 models/linkjarad/
+models/swin_tomato_10cls/
 
 # Logs
 *.log

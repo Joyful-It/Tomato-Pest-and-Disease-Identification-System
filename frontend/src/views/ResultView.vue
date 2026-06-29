@@ -47,7 +47,7 @@
                   {{ result.disease_result?.is_healthy ? '健康' : '发现病害' }}
                 </span>
                 <span class="ms-2 text-muted">
-                  置信度：{{ (result.disease_result?.confidence * 100).toFixed(1) }}%
+                  置信度：{{ (result.disease_result?.confidence || 0).toFixed(1) }}%
                 </span>
               </p>
               <div v-if="result.disease_result?.symptoms?.length">
