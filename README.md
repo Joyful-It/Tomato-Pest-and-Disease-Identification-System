@@ -1,4 +1,4 @@
-# 🍅 AgriMate — 番茄病虫害 AI 智能诊断系统
+# 🍅 TomatoAI — 番茄病虫害 AI 智能诊断系统
 
 基于 **Swin Tiny 97.4% 识别 + 多 Agent 协作 + RAG 知识库** 的番茄病虫害智能诊断系统。
 

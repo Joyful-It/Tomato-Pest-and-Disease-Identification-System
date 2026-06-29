@@ -40,7 +40,7 @@ def start_frontend():
 def main():
     """主函数"""
     print("=" * 60)
-    print("🍅 番茄病虫害识别系统")
+    print("🍅 TomatoAI - 番茄病虫害智能诊断")
     print("=" * 60)
 
     # 启动后端

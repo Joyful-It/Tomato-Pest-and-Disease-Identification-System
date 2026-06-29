@@ -28,7 +28,7 @@ from database.init_db import init_database
 
 # 创建 FastAPI 应用
 app = FastAPI(
-    title="番茄病虫害识别系统",
+    title="TomatoAI - 番茄病虫害智能诊断",
     description="基于多 Agent 协作的番茄病虫害智能诊断系统（支持 RAG 知识库）",
     version="2.0.0",
     docs_url="/docs",
@@ -58,7 +58,7 @@ async def startup_event():
     初始化数据库和 RAG 系统
     """
     print("=" * 60)
-    print("正在启动番茄病虫害识别系统...")
+    print("正在启动TomatoAI - 番茄病虫害智能诊断...")
     print("=" * 60)
 
     # 初始化数据库
@@ -89,7 +89,7 @@ async def root():
     根路径
     """
     return {
-        "message": "番茄病虫害识别系统 API",
+        "message": "TomatoAI - 番茄病虫害智能诊断 API",
         "version": "2.0.0",
         "docs": "/docs",
         "features": [
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     启动 FastAPI 应用
     """
     print("=" * 50)
-    print("番茄病虫害识别系统（增强版）")
+    print("TomatoAI - 番茄病虫害智能诊断")
     print("=" * 50)
     print(f"服务地址: http://{APP_HOST}:{APP_PORT}")
     print(f"API 文档: http://{APP_HOST}:{APP_PORT}/docs")
