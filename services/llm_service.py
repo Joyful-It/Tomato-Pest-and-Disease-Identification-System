@@ -71,7 +71,9 @@ class LLMService:
             response = await self.llm.ainvoke(langchain_messages)
             return response.content
         except Exception as e:
+            import traceback
             print(f"LLM 调用失败: {e}")
+            traceback.print_exc()
             self.is_available = False
             return None
 

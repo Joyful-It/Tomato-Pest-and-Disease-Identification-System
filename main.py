@@ -5,7 +5,13 @@
 日期: 2026/6/17
 """
 
-import sys
+import os, sys
+os.environ.setdefault("PYTHONUTF8", "1")
+
+# 修复 httpx 在 Windows 下 header 编码为 ASCII 导致中文报错的问题
+import httpx._models as _hx_models
+_hx_norm = _hx_models._normalize_header_value
+_hx_models._normalize_header_value = lambda v, e=None: _hx_norm(v, e or "utf-8")
 from pathlib import Path
 
 # 添加项目根目录到路径

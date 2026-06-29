@@ -8,12 +8,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const HomeView = () => import('../views/HomeView.vue')
+const ResultView = () => import('../views/ResultView.vue')
 
 const routes = [
   {
     path: '/',
     name: 'Home',
     component: HomeView
+  },
+  {
+    path: '/result/:id',
+    name: 'Result',
+    component: ResultView
   },
   {
     path: '/:pathMatch(.*)*',

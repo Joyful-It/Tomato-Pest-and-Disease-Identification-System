@@ -280,7 +280,7 @@ async def create_diagnosis(
             calendar_advice=AgentResult(
                 success=calendar_result.get("success", False),
                 analysis=calendar_result.get("farming_calendar", {}).get("arrangement"),
-                advice=calendar_result.get("farming_reminders")
+                advice=json.dumps(calendar_result.get("farming_reminders", []), ensure_ascii=False) if calendar_result.get("farming_reminders") else None
             ),
             memory_analysis=AgentResult(
                 success=memory_result.get("success", False),

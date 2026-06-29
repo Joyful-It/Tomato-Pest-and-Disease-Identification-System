@@ -144,7 +144,7 @@ class SafetyAgent(BaseAgent):
             安全性分析
         """
         pesticide_info = "\n".join([
-            f"- {p['name']}（{p['type']}）：{p['dosage']}，安全间隔期{s['safety_period']}"
+            f"- {p['name']}（{p['type']}）：{p['dosage']}，安全间隔期{p['safety_period']}"
             for p in pesticides
         ])
 

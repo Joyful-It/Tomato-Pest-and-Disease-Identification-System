@@ -178,7 +178,7 @@ class MemoryAgent(BaseAgent):
             user_id=user_id,
             memory_type="history",
             content=f"诊断了{disease_name}",
-            metadata={
+            extra_data={
                 "disease_name": disease_name,
                 "confidence": disease_result.get("confidence", 0),
                 "location": context.get("location", "")
@@ -191,7 +191,7 @@ class MemoryAgent(BaseAgent):
                 user_id=user_id,
                 memory_type="knowledge",
                 content=f"番茄{disease_name}的诊断和治疗经验",
-                metadata={
+                extra_data={
                     "disease_name": disease_name,
                     "treatment": context.get("final_advice", "")
                 }

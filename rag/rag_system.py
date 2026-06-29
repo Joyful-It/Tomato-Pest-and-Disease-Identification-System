@@ -686,6 +686,9 @@ def init_rag_system():
 
     # 配置路径
     model_path = str(project_dir.parent / "向量模型")
+    # 如果本地模型不存在，使用 HuggingFace 中文向量模型
+    if not os.path.exists(model_path):
+        model_path = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     knowledge_dir = str(project_dir / "rag知识库")
     db_dir = str(project_dir / "rag" / "vector_db")
 
