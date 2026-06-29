@@ -2,7 +2,7 @@
 文件名: supervisor.py
 功能描述: Supervisor Agent，负责任务拆解与调度，协调其他 Agent 的工作
 作者: ZT
-日期: 2026/6/16
+日期: 2026/6/17
 """
 
 from typing import Dict, Any, List, Optional
@@ -29,6 +29,7 @@ class SupervisorAgent(BaseAgent):
     async def analyze(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         分析输入，拆解任务并调度
+        如果 LLM 不可用，直接返回默认任务列表
 
         Args:
             context: 包含图像和文本分析结果的上下文
@@ -36,10 +37,22 @@ class SupervisorAgent(BaseAgent):
         Returns:
             任务调度结果
         """
-        # 使用 LLM 分析输入，确定需要执行的任务
-        analysis_prompt = self._build_analysis_prompt(context)
+        # 检查 LLM 是否可用
+        if not self.llm_service.is_available:
+            # LLM 不可用，返回默认任务列表
+            tasks = self._get_default_tasks()
+            return {
+                "success": True,
+                "tasks": tasks,
+                "total_tasks": len(tasks),
+                "mode": "default"
+            }
 
-        system_prompt = """你是一个任务调度专家。根据用户的输入（图像分析和文字描述），
+        # LLM 可用，使用 LLM 分析任务
+        try:
+            analysis_prompt = self._build_analysis_prompt(context)
+
+            system_prompt = """你是一个任务调度专家。根据用户的输入（图像分析和文字描述），
 判断需要执行哪些分析任务，并为每个任务生成具体的分析要求。
 
 返回 JSON 格式的任务列表：
@@ -53,16 +66,44 @@ class SupervisorAgent(BaseAgent):
     ]
 }"""
 
-        response = await self._call_llm(system_prompt, analysis_prompt)
+            response = await self._call_llm(system_prompt, analysis_prompt)
 
-        # 解析任务列表
-        tasks = self._parse_tasks(response, context)
+            # 解析任务列表
+            tasks = self._parse_tasks(response, context)
 
-        return {
-            "success": True,
-            "tasks": tasks,
-            "total_tasks": len(tasks)
-        }
+            return {
+                "success": True,
+                "tasks": tasks,
+                "total_tasks": len(tasks),
+                "mode": "llm"
+            }
+        except Exception as e:
+            print(f"Supervisor Agent 分析失败: {e}")
+            # 失败时返回默认任务
+            tasks = self._get_default_tasks()
+            return {
+                "success": True,
+                "tasks": tasks,
+                "total_tasks": len(tasks),
+                "mode": "fallback"
+            }
+
+    def _get_default_tasks(self) -> List[Dict[str, Any]]:
+        """
+        获取默认任务列表（LLM 不可用时使用）
+
+        Returns:
+            默认任务列表
+        """
+        return [
+            {"agent": "disease_agent", "priority": 1, "requirements": "分析病虫害信息，从知识库检索相关防治方法"},
+            {"agent": "weather_agent", "priority": 2, "requirements": "分析天气对病虫害的影响"},
+            {"agent": "soil_agent", "priority": 3, "requirements": "分析土壤状况"},
+            {"agent": "irrigation_agent", "priority": 4, "requirements": "提供灌溉建议"},
+            {"agent": "safety_agent", "priority": 5, "requirements": "提供安全用药建议"},
+            {"agent": "calendar_agent", "priority": 6, "requirements": "提供种植日历建议"},
+            {"agent": "memory_agent", "priority": 7, "requirements": "检索用户历史记忆"}
+        ]
 
     def _build_analysis_prompt(self, context: Dict[str, Any]) -> str:
         """
@@ -110,26 +151,21 @@ class SupervisorAgent(BaseAgent):
         import json
 
         # 默认任务列表
-        default_tasks = [
-            {"agent": "disease_agent", "priority": 1, "requirements": "分析病虫害信息"},
-            {"agent": "weather_agent", "priority": 2, "requirements": "分析天气对病虫害的影响"},
-            {"agent": "soil_agent", "priority": 3, "requirements": "分析土壤状况"},
-            {"agent": "irrigation_agent", "priority": 4, "requirements": "提供灌溉建议"},
-            {"agent": "safety_agent", "priority": 5, "requirements": "提供安全用药建议"},
-            {"agent": "calendar_agent", "priority": 6, "requirements": "提供种植日历建议"},
-            {"agent": "memory_agent", "priority": 7, "requirements": "检索用户历史记忆"}
-        ]
+        default_tasks = self._get_default_tasks()
+
+        # 检查 response 是否为 None
+        if response is None:
+            return default_tasks
 
         try:
             # 尝试解析 JSON
-            # 先提取 JSON 部分
             json_start = response.find("{")
             json_end = response.rfind("}") + 1
             if json_start != -1 and json_end > json_start:
                 json_str = response[json_start:json_end]
                 data = json.loads(json_str)
                 return data.get("tasks", default_tasks)
-        except (json.JSONDecodeError, KeyError):
+        except (json.JSONDecodeError, KeyError, AttributeError):
             pass
 
         # 如果解析失败，返回默认任务
@@ -171,6 +207,7 @@ class SupervisorAgent(BaseAgent):
                     result = await agent.analyze(task_context)
                     results[agent_name] = result
                 except Exception as e:
+                    print(f"Agent {agent_name} 执行失败: {e}")
                     results[agent_name] = {
                         "success": False,
                         "error": str(e)
